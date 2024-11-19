@@ -1,0 +1,10 @@
+{
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "editor.defaultFormatter": null,
+    "powershell.codeFormatting.preset": "Stroustrup",
+    "powershell.codeFormatting.whitespaceBetweenParameters": true,
+    "[powershell]": {
+        "editor.defaultFormatter": "trunk.io"
+    }
+}
