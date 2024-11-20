@@ -35,18 +35,18 @@ Describe "Basics" {
   }
 
   Context 'Temp Directories' {
-    It 'Check unix trailing slashes passed' {
-      ${newTmpDir} = $(Get-NewTempDir("/tmp/"))
-      ${newTmpDir}.Substring(0, 6) | Should -Not -Be "/tmp//"
+    It 'Check trailing separator passed' {
+      ${newTmpDir} = $(Get-NewTempDir("/tmp" + [IO.Path]::DirectorySeparatorChar))
+      ${newTmpDir}.Substring(0, 6) | Should -Not -Be $("/tmp" + [IO.Path]::DirectorySeparatorChar + [IO.Path]::DirectorySeparatorChar)
 
     }
-    It 'Check unix trailing slashes not passed' {
-      ${newTmpDir} = $(Get-NewTempDir("/tmp"))
-      ${newTmpDir}.Substring(0, 5) | Should -Be "/tmp/"
+    It 'Check  trailing separator not passed' {
+      ${newTmpDir} = Get-NewTempDir("/tmp")
+      ${newTmpDir}.Substring(0, 5) | Should -Be $("/tmp" + [IO.Path]::DirectorySeparatorChar)
 
     }
     It 'Create and destroy new temp dir' {
-      ${newTmpDir} = $(Get-NewTempDir("/tmp"))
+      ${newTmpDir} = Get-NewTempDir($env:TEMP ?? "/tmp")
       Test-Path ${newTmpDir} | Should -be $false
       New-Item ${newTmpDir} -Force
       Test-Path ${newTmpDir} | Should -be $true

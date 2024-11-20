@@ -1,0 +1,48 @@
+<Configuration>
+<Networking>Enable</Networking>
+<MappedFolders>
+
+  <!-- c:\p This is our project folder -->
+  <MappedFolder>
+    <HostFolder>${env:currentDirectory}\..\..\</HostFolder>
+    <ReadOnly>true</ReadOnly>
+    <SandboxFolder>c:\p</SandboxFolder>
+  </MappedFolder>
+
+  <!-- c:\s This is our "inside" scripts folder -->
+  <MappedFolder>
+    <HostFolder>${env:currentDirectory}\inside\</HostFolder>
+    <ReadOnly>true</ReadOnly>
+    <SandboxFolder>c:\s</SandboxFolder>
+  </MappedFolder>
+
+  <!-- c:\k This is our artifacts folder -->
+  <MappedFolder>
+    <HostFolder>${env:currentDirectory}\artifacts</HostFolder>
+    <ReadOnly>false</ReadOnly>
+    <SandboxFolder>c:\k</SandboxFolder>
+  </MappedFolder>
+
+  <!-- c:\l This is our licenses folder -->
+  <MappedFolder>
+    <HostFolder>${env:currentDirectory}\licenses</HostFolder>
+    <ReadOnly>true</ReadOnly>
+    <SandboxFolder>c:\l</SandboxFolder>
+  </MappedFolder>
+
+  <!-- c:\y This is our logs folder -->
+  <MappedFolder>
+    <HostFolder>${env:currentDirectory}\logs</HostFolder>
+    <ReadOnly>false</ReadOnly>
+    <SandboxFolder>c:\y</SandboxFolder>
+  </MappedFolder>
+
+</MappedFolders>
+
+
+<LogonCommand>
+  <Command>cmd /c call c:\s\01.s.bat
+  </Command>
+</LogonCommand>
+
+</Configuration>
