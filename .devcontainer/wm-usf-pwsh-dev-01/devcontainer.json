@@ -1,36 +1,42 @@
 {
-    "build": {
-      "dockerfile": "Dockerfile",
-      "image": "wm-usf-pwsh-dev-01",
-      "args":{
-        "__UNAME":"vscode"
-      }
-    },
-    "remoteEnv": {
-      "CONTAINER_WORKSPACE_FOLDER": "${containerWorkspaceFolder}"
-    },
-    "name": "wm-usf-pwsh-dev-01",
-    "containerUser": "vscode",
-    "runArgs": ["--rm", "--hostname", "wm-usf-pwsh-dev-01", "--name", "wm-usf-pwsh-dev-01"],
-    "postCreateCommand": "git config --global --add safe.directory ${CONTAINER_WORKSPACE_FOLDER}",
-    "customizations": {
-      "vscode": {
-        "settings":{
-          "workbench.colorTheme": "Violet Flask"
-        },
-        "extensions": [
-          "eamodio.gitlens",
-          "hediet.vscode-drawio",
-          "legebeker.violet-flask",
-          "mervin.markdown-formatter",
-          "mhutchie.git-graph",
-          "ms-vscode.powershell",
-          "oderwat.indent-rainbow",
-          "pspester.pester-test",
-          "tautologics.pesterer",
-          "trunk.io",
-          "yzhang.markdown-all-in-one"
-        ]
-      }
+  "build": {
+    "dockerfile": "Dockerfile",
+    "image": "wm-usf-pwsh-dev-01",
+    "args": {
+      "__UNAME": "vscode"
+    }
+  },
+  "remoteEnv": {
+    "CONTAINER_WORKSPACE_FOLDER": "${containerWorkspaceFolder}"
+  },
+  "name": "wm-usf-pwsh-dev-01",
+  "containerUser": "vscode",
+  "runArgs": [
+    "--rm",
+    "--hostname",
+    "wm-usf-pwsh-dev-01",
+    "--name",
+    "wm-usf-pwsh-dev-01"
+  ],
+  "postCreateCommand": "git config --global --add safe.directory ${CONTAINER_WORKSPACE_FOLDER}",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "workbench.colorTheme": "Violet Flask"
+      },
+      "extensions": [
+        "eamodio.gitlens",
+        "hediet.vscode-drawio",
+        "legebeker.violet-flask",
+        "mervin.markdown-formatter",
+        "mhutchie.git-graph",
+        "ms-vscode.powershell",
+        "oderwat.indent-rainbow",
+        "pspester.pester-test",
+        "tautologics.pesterer",
+        "trunk.io",
+        "yzhang.markdown-all-in-one"
+      ]
     }
   }
+}

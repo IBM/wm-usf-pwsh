@@ -5,7 +5,7 @@
     "powershell.codeFormatting.preset": "Stroustrup",
     "powershell.codeFormatting.whitespaceBetweenParameters": true,
     "[powershell]": {
-        "editor.defaultFormatter": "trunk.io"
+        "editor.defaultFormatter": "ms-vscode.powershell"
     },
     "[markdown]": {
         "editor.defaultFormatter": "mervin.markdown-formatter",
