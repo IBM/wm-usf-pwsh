@@ -6,5 +6,18 @@
     "powershell.codeFormatting.whitespaceBetweenParameters": true,
     "[powershell]": {
         "editor.defaultFormatter": "trunk.io"
-    }
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "mervin.markdown-formatter",
+        "editor.unicodeHighlight.ambiguousCharacters": false,
+        "editor.unicodeHighlight.invisibleCharacters": true,
+        "diffEditor.ignoreTrimWhitespace": false,
+        "editor.wordWrap": "on",
+        "editor.quickSuggestions": {
+            "comments": "off",
+            "strings": "off",
+            "other": "off"
+        }
+    },
+    "workbench.colorTheme": "Violet Flask"
 }
