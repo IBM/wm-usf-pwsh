@@ -34,13 +34,33 @@ Describe "Basics" {
     }
   }
 
+  # TODO: Epand the script variable management
+  Context 'Audit' {
+
+    It 'Gets the current Temp session dir' {
+      Get-TempSessionDir
+      Get-TempSessionDir | Should -Not -Be ''
+    }
+
+    It 'Sets Logging Folder' {
+      Set-LogSessionDir '/tmp/log1'
+      Get-LogSessionDir | Should -Be '/tmp/log1'
+    }
+
+    It 'Sets Today Logging Folder' {
+      Set-LogSessionDir '/tmp/log1'
+      Set-TodayLogSessionDir
+      Get-LogSessionDir | Should -Not -Be '/tmp/log1'
+    }
+  }
+
   Context 'Temp Directories' {
-    It 'Check trailing separator passed' {
+    It 'Checks trailing separator passed' {
       ${newTmpDir} = $(Get-NewTempDir("/tmp" + [IO.Path]::DirectorySeparatorChar))
       ${newTmpDir}.Substring(0, 6) | Should -Not -Be $("/tmp" + [IO.Path]::DirectorySeparatorChar + [IO.Path]::DirectorySeparatorChar)
 
     }
-    It 'Check  trailing separator not passed' {
+    It 'Checks trailing separator not passed' {
       ${newTmpDir} = Get-NewTempDir("/tmp")
       ${newTmpDir}.Substring(0, 5) | Should -Be $("/tmp" + [IO.Path]::DirectorySeparatorChar)
 
@@ -54,4 +74,8 @@ Describe "Basics" {
       Test-Path ${newTmpDir} | Should -be $false
     }
   }
+}
+
+Describe "Transports Assurance"{
+  
 }
