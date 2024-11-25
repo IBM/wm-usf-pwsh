@@ -1,4 +1,4 @@
-Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force
+Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force || exit 1
 
 function checkPester() {
   $pesterModules = @( Get-Module -Name "Pester" -ErrorAction "SilentlyContinue" );
@@ -42,15 +42,19 @@ Describe "Basics" {
       Get-TempSessionDir | Should -Not -Be ''
     }
 
-    It 'Sets Logging Folder' {
-      Set-LogSessionDir '/tmp/log1'
-      Get-LogSessionDir | Should -Be '/tmp/log1'
-    }
+    # It 'Sets Logging Folder' {
+    #   Set-LogSessionDir '/tmp/log1'
+    #   Get-LogSessionDir | Should -Be '/tmp/log1'
+    # }
 
     It 'Sets Today Logging Folder' {
-      Set-LogSessionDir '/tmp/log1'
+      ${lsd} = Get-LogSessionDir
+      Set-LogSessionDir -NewSessionDir '/tmp/log1'
+      Get-LogSessionDir | Should -Be '/tmp/log1'
       Set-TodayLogSessionDir
       Get-LogSessionDir | Should -Not -Be '/tmp/log1'
+      Set-LogSessionDir -NewSessionDir "${lsd}"
+      Get-LogSessionDir | Should -Be "${lsd}"
     }
   }
 
@@ -74,8 +78,15 @@ Describe "Basics" {
       Test-Path ${newTmpDir} | Should -be $false
     }
   }
+
+  Context 'Logging' {
+    It 'logs an info message' {
+      Debug-WmUifwLogI "Log message" | Should -Be $null
+    }
+  }
+  
 }
 
-Describe "Transports Assurance"{
+Describe "Transports Assurance" {
   
 }

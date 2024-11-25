@@ -16,11 +16,12 @@ function Set-LogSessionDir {
     [Parameter(Mandatory = $true)]
     [string]${NewSessionDir}
   )
+  Resolve-WmusfDirectory -directory ${logSessionDir} -alsoLog $false
   Set-Variable -Name 'LogSessionDir' -Value ${NewSessionDir} -Scope Script
 }
 
 function Set-TodayLogSessionDir {
-  ${auditDir} = Get-Variable -Name 'AuditSessionDir' -Scope Script -ValueOnly
+  ${auditDir} = Get-Variable -Name 'AuditBaseDir' -Scope Script -ValueOnly
   Set-LogSessionDir -NewSessionDir "${auditDir}/$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%d')"
 }
 
@@ -43,9 +44,12 @@ function Debug-WmUifwLog {
     [Parameter(Mandatory = $false)]
     [string]${sev} = " INFO"
   )
-  ${fs} = "$(Get-SessionLogDir)|${sev}|${msg}"
+  $l = Get-LogSessionDir
+  ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')|${sev}|${msg}"
   Write-Host "${fs}"
-  Add-content "${logSessionDir}/session.log" -value "$fs"
+  Add-content "${l}/session.log" -value "$fs"
+
+  Write-Host $MyInvocation.PSCommandPath
 }
 
 function Debug-WmUifwLogI {
@@ -73,6 +77,15 @@ function Debug-WmUifwLogE {
     [string]$msg
   )
   Debug-WmUifwLog -msg $msg -sev "ERROR"
+}
+
+function Debug-WmUifwLogD {
+  param (
+    # Where to download from
+    [Parameter(Mandatory = $true)]
+    [string]$msg
+  )
+  Debug-WmUifwLog -msg $msg -sev "DEBUG"
 }
 ##### End Audit
 
@@ -208,7 +221,49 @@ function Resolve-WebFileWithChecksumVerification {
   return $r
 }
 
-function Resolve-WmusfCommonModuleLocalsInitialization() {
+function Resolve-WmusfDirectory {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${directory},
+    
+    [Parameter(Mandatory = $false)]
+    [Boolean]$alsoLog = $false
+  )
+
+  if (Test-Path -Path "${directory}") {
+    if ( -Not (Test-Path -Path "${directory}" -PathType Container)) {
+      Write-Error "Path ${directory} is not a directory! This library may not work as expected!"
+      if ($alsoLog) {
+        Debug-WmUifwLogI "Path ${directory} is not a directory! This library may not work as expected!"
+      }
+      return "1"
+    }
+  }
+  else {
+    if ($alsoLog) {
+      "Creating directory with path ${directory}"
+    }
+    New-Item -ItemType Directory -Path "${directory}" -Force
+    if (Test-Path -Path "${directory}" -PathType Container) {
+      if ($alsoLog) {
+        Debug-WmUifwLogI "Created Directory ${directory}"
+      }
+      return "2"
+    }
+    else {
+      if ($alsoLog) {
+        Debug-WmUifwLogE "Path ${directory} was NOT created!"
+      }
+      return "3"
+    }
+  }
+  
+}
+
+# This library is founded on a set of variables
+# The scripts are expected to use scoped variables
+# The variables resolved here are "global" for the script importing this module
+function Resolve-WmusfCommonModuleLocals() {
   ${sysTemp} = ${env:TEMP} ?? '/tmp'
   ${tempFolder} = ${env:WMUSF_TEMP_DIR} ?? `
     ${sysTemp} + [IO.Path]::DirectorySeparatorChar + "WMUSF"
@@ -216,9 +271,18 @@ function Resolve-WmusfCommonModuleLocalsInitialization() {
   Write-Host "TempSessionDir script variable set to ${tempFolder}"
 
   ${auditDir} = ${env:WMUSF_AUDIT_DIR} ?? "${tempFolder}/WMUSF_AUDIT"
-  Set-Variable -Name 'AuditSessionDir' -Value ${auditDir} -Scope Script
+  Set-Variable -Name 'AuditBaseDir' -Value ${auditDir} -Scope Script
 
-  Set-LogSessionDir $(${env:WMUSF_LOG_SESSION_DIR} ?? `
+  ${logSessionDir} = $(${env:WMUSF_LOG_SESSION_DIR} ?? `
       "${auditDir}/$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')")
+  Set-LogSessionDir -NewSessionDir ${logSessionDir}
+
+  Resolve-WmusfDirectory -directory ${tempFolder} -alsoLog $true
+
+  Debug-WmUifwLogI "Module wm-usf-common.psm1 initialized"
+  Debug-WmUifwLogD "AuditBaseDir: ${auditDir}"
+  Debug-WmUifwLogD "LogSessionDir: ${logSessionDir}"
+  Debug-WmUifwLogD "TempSessionDir: ${tempFolder}"
+
 }
-Resolve-WmusfCommonModuleLocalsInitialization
+Resolve-WmusfCommonModuleLocals
