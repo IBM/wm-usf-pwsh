@@ -42,14 +42,13 @@ function Debug-WmUifwLog {
     [string]${msg},
     # log severity
     [Parameter(Mandatory = $false)]
-    [string]${sev} = " INFO"
+    [string]${sev} = "INF"
   )
   $l = Get-LogSessionDir
-  ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')|${sev}|${msg}"
+  ${callingPoint} = $(Get-PSCallStack).SyncRoot.Get(2)
+  ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')|${sev}|${callingPoint}|${msg}"
   Write-Host "${fs}"
   Add-content "${l}/session.log" -value "$fs"
-
-  Write-Host $MyInvocation.PSCommandPath
 }
 
 function Debug-WmUifwLogI {
@@ -67,7 +66,7 @@ function Debug-WmUifwLogW {
     [Parameter(Mandatory = $true)]
     [string]$msg
   )
-  Debug-WmUifwLog -msg $msg -sev " WARN"
+  Debug-WmUifwLog -msg $msg -sev "WRN"
 }
 
 function Debug-WmUifwLogE {
@@ -76,7 +75,7 @@ function Debug-WmUifwLogE {
     [Parameter(Mandatory = $true)]
     [string]$msg
   )
-  Debug-WmUifwLog -msg $msg -sev "ERROR"
+  Debug-WmUifwLog -msg $msg -sev "ERR"
 }
 
 function Debug-WmUifwLogD {
@@ -85,7 +84,7 @@ function Debug-WmUifwLogD {
     [Parameter(Mandatory = $true)]
     [string]$msg
   )
-  Debug-WmUifwLog -msg $msg -sev "DEBUG"
+  Debug-WmUifwLog -msg $msg -sev "DBG"
 }
 ##### End Audit
 
@@ -110,114 +109,6 @@ function Get-NewTempDir() {
   }
 
   $r = $tmpBaseDir + (Get-Date -UFormat "%y%m%d%R" | ForEach-Object { $_ -replace ":", "." })
-  return $r
-}
-
-########### Sacure Assets Assurance
-function Get-WebFileWithChecksumVerification {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$url,
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]$fullOutputDirectoryPath = $(Get-TempSessionDir) ,
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]$fileName = "file.bin",
-    # Hash to be checked
-    [Parameter(Mandatory = $true)]
-    [string]$expectedHash,
-
-    # Hash to be checked
-    [Parameter(Mandatory = $false)]
-    [string]$hashAlgoritm = "SHA256"
-  )
-
-  Debug-WmUifwLogI "wmUifwCommon|Get-WebFileWithChecksumVerification() - Downloading file "$fullOutputDirectoryPath/$fileName""
-  Debug-WmUifwLogI "wmUifwCommon|Get-WebFileWithChecksumVerification() - From $url"
-  Debug-WmUifwLogI "wmUifwCommon|Get-WebFileWithChecksumVerification() - Guaranteeing $hashAlgoritm checksum $expectedHash"
-  
-  # assure destination folder
-  Debug-WmUifwLogI "Eventually create folder $fullOutputDirectoryPath..."
-  New-Item -Path $fullOutputDirectoryPath -ItemType Directory -Force | Out-Null
-  $fullFilePath = "$fullOutputDirectoryPath/$fileName"
-  # Download the file
-  Invoke-WebRequest -Uri $url -OutFile "$fullFilePath.verify"
-
-  # Calculate the SHA256 hash of the downloaded file
-  $fileHash = Get-FileHash -Path "$fullFilePath.verify" -Algorithm $hashAlgoritm
-  Debug-WmUifwLogI("wmUifwCommon|Get-WebFileWithChecksumVerification() - File hash is $fileHash.Hash .")
-  Write-Host $fileHash
-  # Compare the calculated hash with the expected hash
-  $r = $false
-  if ($fileHash.Hash -eq $expectedHash) {
-    Rename-Item -Path "$fullFilePath.verify" -NewName "$fullFilePath"
-    Debug-WmUifwLogI "wmUifwCommon|Get-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash matches the expected hash."
-    $r = $true
-  }
-  else {
-    Rename-Item -Path "$fullFilePath.verify" -NewName "$fullFilePath.dubious"
-    Debug-WmUifwLogE "wmUifwCommon| Get-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash."
-    Debug-WmUifwLogE "wmUifwCommon|Get-WebFileWithChecksumVerification() - Got $fileHash.Hash, but expected $expectedHash!"
-  }
-  Debug-WmUifwLogI("wmUifwCommon|Get-WebFileWithChecksumVerification returns $r")
-  return $r
-}
-
-function Resolve-WebFileWithChecksumVerification {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$url,
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]$fullOutputDirectoryPath = $(Get-TempSessionDir),
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]$fileName = "/tmp/file.bin",
-    # Hash to be checked
-    [Parameter(Mandatory = $true)]
-    [string]$expectedHash,
-
-    # Hash to be checked
-    [Parameter(Mandatory = $false)]
-    [string]$hashAlgoritm = "SHA256"
-  )
-
-  # Calculate the SHA256 hash of the downloaded file
-  $fullFilePath = "$fullOutputDirectoryPath/$fileName"
-  Debug-WmUifwLogI("wmUifwCommon|Resolve-WebFileWithChecksumVerification() - checking file $fullFilePath ...")
-
-  # if File exists, just check the checksum
-  if (Test-Path $fullFilePath -PathType Leaf) {
-    Debug-WmUifwLogI("wmUifwCommon|Resolve-WebFileWithChecksumVerification() - file $fullFilePath found.")
-    $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgoritm
-    Debug-WmUifwLogI("wmUifwCommon|Resolve-WebFileWithChecksumVerification() - its hash is $fileHash.Hash .")
-    if ($fileHash.Hash -eq $expectedHash) {
-      Debug-WmUifwLogI "wmUifwCommon|Resolve-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash matches the expected hash."
-      return $true
-    }
-    else {
-      Debug-WmUifwLogI("wmUifwCommon| Resolve-WebFileWithChecksumVerification() - checking file $fullFilePath ...")
-      Debug-WmUifwLogE "wmUifwCommon| Resolve-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash. Downloaded file renamed"
-      Debug-WmUifwLogE "wmUifwCommon|Resolve-WebFileWithChecksumVerification() - Got $fileHash.Hash, but expected $expectedHash!"
-      return $false
-    }
-  }
-  Debug-WmUifwLogI("wmUifwCommon|Resolve-WebFileWithChecksumVerification() - file $fullFilePath does not exist. Attempting to download...")
-  $r = Get-WebFileWithChecksumVerification `
-    -url "$url" `
-    -fullOutputDirectoryPath "$fullOutputDirectoryPath" `
-    -fileName "$fileName" `
-    -expectedHash "$expectedHash" `
-    -hashAlgoritm "$hashAlgoritm"
-  
-  Debug-WmUifwLogI "wmUifwCommon|Resolve-WebFileWithChecksumVerification() - Initialize-SumBootstrapBinary returns $r"
   return $r
 }
 
@@ -260,6 +151,143 @@ function Resolve-WmusfDirectory {
   
 }
 
+########### Assets Assurance
+function Get-WebFileWithChecksumVerification {
+  param (
+    # Where to download from
+    [Parameter(Mandatory = $true)]
+    [string]$url,
+
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]$fullOutputDirectoryPath = $(Get-TempSessionDir) ,
+
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]$fileName = "file.bin",
+    # Hash to be checked
+    [Parameter(Mandatory = $true)]
+    [string]$expectedHash,
+
+    # Hash to be checked
+    [Parameter(Mandatory = $false)]
+    [string]$hashAlgoritm = "SHA256"
+  )
+
+  Debug-WmUifwLogI "Downloading file $fullOutputDirectoryPath/$fileName"
+  Debug-WmUifwLogI "From $url"
+  Debug-WmUifwLogI "Guaranteeing $hashAlgoritm checksum $expectedHash"
+  
+  # assure destination folder
+  Debug-WmUifwLogI "Eventually create folder $fullOutputDirectoryPath..."
+  New-Item -Path $fullOutputDirectoryPath -ItemType Directory -Force | Out-Null
+  $fullFilePath = "$fullOutputDirectoryPath/$fileName"
+  # Download the file
+  Invoke-WebRequest -Uri $url -OutFile "$fullFilePath.verify"
+
+  # Calculate the SHA256 hash of the downloaded file
+  $fileHash = Get-FileHash -Path "$fullFilePath.verify" -Algorithm $hashAlgoritm
+  Debug-WmUifwLogI("File hash is " + ${fileHash}.Hash.ToString() + " .")
+  #Write-Host $fileHash
+  # Compare the calculated hash with the expected hash
+  $r = $false
+  if ($fileHash.Hash -eq $expectedHash) {
+    Rename-Item -Path "$fullFilePath.verify" -NewName "$fullFilePath"
+    Debug-WmUifwLogI "The file's $hashAlgoritm hash matches the expected hash."
+    $r = $true
+  }
+  else {
+    Rename-Item -Path "$fullFilePath.verify" -NewName "$fullFilePath.dubious"
+    Debug-WmUifwLogE "wmUifwCommon| Get-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash."
+    Debug-WmUifwLogE "Got $fileHash.Hash, but expected $expectedHash!"
+  }
+  Debug-WmUifwLogI("wmUifwCommon|Get-WebFileWithChecksumVerification returns $r")
+  return $r
+}
+
+function Resolve-WebFileWithChecksumVerification {
+  param (
+    # Where to download from
+    [Parameter(Mandatory = $true)]
+    [string]$url,
+
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]${fullOutputDirectoryPath} = $(Get-TempSessionDir),
+
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]${fileName} = "file.bin",
+    # Hash to be checked
+    [Parameter(Mandatory = $true)]
+    [string]${expectedHash},
+
+    # Hash to be checked
+    [Parameter(Mandatory = $false)]
+    [string]${hashAlgoritm} = "SHA256"
+  )
+
+  # Calculate the SHA256 hash of the downloaded file
+  $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
+  Debug-WmUifwLogI "checking file $fullFilePath ..."
+
+  # if File exists, just check the checksum
+  if (Test-Path $fullFilePath -PathType Leaf) {
+    Debug-WmUifwLogI("file $fullFilePath found.")
+    $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgoritm
+    Debug-WmUifwLogI("its hash is " + $fileHash.Hash)
+    if ($fileHash.Hash -eq $expectedHash) {
+      Debug-WmUifwLogI "The file's $hashAlgoritm hash matches the expected hash."
+      return $true
+    }
+    else {
+      Debug-WmUifwLogI("wmUifwCommon| Resolve-WebFileWithChecksumVerification() - checking file $fullFilePath ...")
+      Debug-WmUifwLogE "wmUifwCommon| Resolve-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash. Downloaded file renamed"
+      Debug-WmUifwLogE "Got $fileHash.Hash, but expected $expectedHash!"
+      return $false
+    }
+  }
+  Debug-WmUifwLogI("file $fullFilePath does not exist. Attempting to download...")
+  $r = Get-WebFileWithChecksumVerification `
+    -url "$url" `
+    -fullOutputDirectoryPath "$fullOutputDirectoryPath" `
+    -fileName "$fileName" `
+    -expectedHash "$expectedHash" `
+    -hashAlgoritm "$hashAlgoritm"
+  
+  Debug-WmUifwLogI "Initialize-SumBootstrapBinary returns $r"
+  return $r
+}
+
+function Resolve-DefaultInstaller() {
+  param (
+    # Where to download from
+    [Parameter(Mandatory = $false)]
+    [string]$url = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe",
+
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]${fullOutputDirectoryPath} = "../09.artifacts",
+
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]${fileName} = "installer.exe",
+    # Hash to be checked
+    [Parameter(Mandatory = $false)]
+    [string]${expectedHash} = "cdfff7e2f420d182a4741d90e4ee02eb347db28bdaa4969caca0a3ac1146acd3",
+
+    # Hash to be checked
+    [Parameter(Mandatory = $false)]
+    [string]${hashAlgoritm} = "SHA256"
+  )
+
+  Resolve-WebFileWithChecksumVerification `
+    -url ${url} -expectedHash ${expectedHash} `
+    -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
+    -fileName ${fileName} -hashAlgoritm ${hashAlgoritm}
+}
+
+############## Initialize Variables
 # This library is founded on a set of variables
 # The scripts are expected to use scoped variables
 # The variables resolved here are "global" for the script importing this module
