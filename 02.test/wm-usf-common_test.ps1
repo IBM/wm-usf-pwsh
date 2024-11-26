@@ -1,5 +1,8 @@
 Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force || exit 1
 
+${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
+${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
+
 ## Convenient Constanst
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 
@@ -35,7 +38,7 @@ Describe "Basics" {
       $env:b = $null
       $inString | Invoke-EnvironmentSubstitution | Should -Be 'aa  cc'
     }
-    // i.e. either env or global work
+    # i.e. either env or global work
     It 'Substitutes Given Variable' {
       ${inString} = 'begin|${TestVariable1}|${TestVariable2}|$TestVariable3|end'
       ${TestVariable1} = "XX"
@@ -68,6 +71,25 @@ Describe "Basics" {
       Get-LogSessionDir | Should -Not -Be ${localTempBaseDir}
       Set-LogSessionDir -NewSessionDir "${lsd}"
       Get-LogSessionDir | Should -Be "${lsd}"
+    }
+
+    It 'Invokes audited command' {
+      if (${posixCmd}) {
+        Invoke-AuditedCommand 'ls -lart /' 'test1' | Should -Be 'True'
+      }
+      else {
+        Invoke-AuditedCommand 'dir' 'test1' | Should -Be 'True'
+      }
+    }
+
+    It 'Invokes audited command having error' {
+      #$LastExitError | Should -Be $null
+      if (${posixCmd}) {
+        Invoke-AuditedCommand 'ls -lart \' 'test2' | Should -Not -Be 'True'
+      }
+      else {
+        Invoke-AuditedCommand 'dir CCC:' 'test2' | Should -Not -Be 'True' 
+      }
     }
   }
 

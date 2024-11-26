@@ -3,6 +3,8 @@
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 # TODO: enforce, this is a bit naive
 ${sysTemp} = ${env:TEMP} ?? '/tmp'
+#${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
+#${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
 
 # Context constants
 ${defaultInstallerDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe"
@@ -97,11 +99,50 @@ function Debug-WmUifwLogD {
 }
 ##### End Audit
 
+########### Tools
 function Invoke-EnvironmentSubstitution() {
   param([Parameter(ValueFromPipeline)][string]$InputObject)
 
   #Get-ChildItem Env: | Set-Variable
   $ExecutionContext.InvokeCommand.ExpandString($InputObject)
+}
+
+# Haven't found a reliable way to extract the command exit code, only if it is successful or not.
+# TODO: Check if this can be done better
+function Invoke-AuditedCommand() {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${command},
+
+    [Parameter(Mandatory = $true)]
+    [string]${tag}
+  )
+
+  ${lsd} = Get-LogSessionDir
+  #Debug-WmUifwLogD "Running in POSIX environment: ${posixCmd}"
+
+  ${fullCmd} = ""
+  ${baseOutputFileName} = "${lsd}${pathSep}${tag}"
+  ${ts} = Get-Date -UFormat "%s" 
+  ${fullCmd} = ${command}
+  ${fullCmd} += ' >>"' 
+  ${fullCmd} += "${baseOutputFileName}.out.txt"
+  ${fullCmd} += '" 2>>"'
+  ${fullCmd} += "${baseOutputFileName}.err.txt"
+  ${fullCmd} += '" || echo False >"'
+  ${fullCmd} += "${baseOutputFileName}.exitcode.${ts}.txt"
+  ${fullCmd} += '"'
+
+  Add-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt" -Value "True"
+  Debug-WmUifwLogD "Executing Command:"
+
+  Debug-WmUifwLogD "${fullCmd}"
+
+  Invoke-Expression "${fullCmd}"
+  ${exitCode} = Get-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt"
+
+  Debug-WmUifwLogD "Command exitted with code ${exitCode}"
+  return ${exitCode} 
 }
 
 function Get-NewTempDir() {
@@ -336,7 +377,7 @@ function Resolve-WmusfCommonModuleLocals() {
   Set-Variable -Name 'AuditBaseDir' -Value ${auditDir} -Scope Script
 
   ${logSessionDir} = $(${env:WMUSF_LOG_SESSION_DIR} ?? `
-      "${auditDir}/$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')")
+      "${auditDir}${pathSep}$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')")
   Set-LogSessionDir -NewSessionDir ${logSessionDir}
 
   Resolve-WmusfDirectory -directory ${tempFolder} -alsoLog $true
