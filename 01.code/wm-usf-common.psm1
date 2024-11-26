@@ -155,6 +155,15 @@ function Resolve-ProductVersionToLatest() {
   return ${InstallerProductCode} -replace $rgx, '${1}LATEST${2}'
 }
 
+function Build-ProductList() {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${InstallationProductList}
+
+  )
+  return "ProductList=" + ${InstallationProductList}.Replace([environment]::Newline, ",")
+}
+
 function Get-NewTempDir() {
   param (
     # log message

@@ -128,6 +128,15 @@ Describe "Basics" {
       ${prdCode} = "e2ei/11/BR_10.5.0.0.1105/Broker/BrokerJMSShared"
       Resolve-ProductVersionToLatest -InstallerProductCode ${prdCode}  | Should -Be "e2ei/11/BR_10.5.0.0.LATEST/Broker/BrokerJMSShared"
     }
+
+    It 'builds product list from multiline string' {
+      ${prdCodes} = "e2ei/11/BR_10.5.0.0.LATEST/Broker/BrokerJMSShared"
+      ${prdCodes} += [environment]::Newline
+      ${prdCodes} += "e2ei/11/TPS_10.11.0.0.100/SCG/tppModelling"
+      Build-ProductList -InstallationProductList ${prdCodes}  `
+      | Should -Be "ProductList=e2ei/11/BR_10.5.0.0.LATEST/Broker/BrokerJMSShared,e2ei/11/TPS_10.11.0.0.100/SCG/tppModelling"
+    }
+
   }
 
 }
