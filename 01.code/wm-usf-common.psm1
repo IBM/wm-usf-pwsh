@@ -145,6 +145,16 @@ function Invoke-AuditedCommand() {
   return ${exitCode} 
 }
 
+function Resolve-ProductVersionToLatest() {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${InstallerProductCode}
+  )
+  $rgx = '^(.*\.)[0-9]+(\/.*)$'
+  
+  return ${InstallerProductCode} -replace $rgx, '${1}LATEST${2}'
+}
+
 function Get-NewTempDir() {
   param (
     # log message

@@ -123,6 +123,13 @@ Describe "Basics" {
     }
   }
   
+  Context 'String Utils' {
+    It 'sets latest version for product installer code' {
+      ${prdCode} = "e2ei/11/BR_10.5.0.0.1105/Broker/BrokerJMSShared"
+      Resolve-ProductVersionToLatest -InstallerProductCode ${prdCode}  | Should -Be "e2ei/11/BR_10.5.0.0.LATEST/Broker/BrokerJMSShared"
+    }
+  }
+
 }
 
 Describe "Transports Assurance" {
