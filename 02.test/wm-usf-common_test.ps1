@@ -35,6 +35,14 @@ Describe "Basics" {
       $env:b = $null
       $inString | Invoke-EnvironmentSubstitution | Should -Be 'aa  cc'
     }
+    // i.e. either env or global work
+    It 'Substitutes Given Variable' {
+      ${inString} = 'begin|${TestVariable1}|${TestVariable2}|$TestVariable3|end'
+      ${TestVariable1} = "XX"
+      Set-Variable -Name "TestVariable2" -Value "YY" -Scope Script
+      Set-Variable -Name "TestVariable3" -Value "ZZ" -Scope Global
+      ${inString} | Invoke-EnvironmentSubstitution | Should -Be 'begin|||ZZ|end'
+    }
   }
 
   # TODO: Epand the script variable management
