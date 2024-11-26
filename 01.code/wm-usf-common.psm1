@@ -3,14 +3,19 @@
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 # TODO: enforce, this is a bit naive
 ${sysTemp} = ${env:TEMP} ?? '/tmp'
+
 # Context constants
-${defaultInstallerDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20230725-w64.exe"
-${defaultInstallerFileHash} = "26236aac5e5c20c60d2f7862c606cdfdd86f08e0a1a39dbfc3e09d2ba50b8bce"
+${defaultInstallerDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe"
+${defaultInstallerFileHash} = "cdfff7e2f420d182a4741d90e4ee02eb347db28bdaa4969caca0a3ac1146acd3"
 ${defaultInstallerFileHashAlgorithm} = "SHA256"
 
-${defaultSumBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGUpdateManagerInstaller20230322-11-Windows.exe"
-${defaultSumBootstrapFileHash} = "f64d438c23acd7d41f22e632ef067f47afc19f12935893ffc89ea2ccdfce1c02"
-${defaultSumBootstraprFileHashAlgorithm} = "SHA256"
+${defaultWmumBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
+${defaultWmumBootstrapFileHash} = "53d283ba083a3535dd12831aa05ab0e8a590ff577053ab9eebedabe5a499fbfa"
+${defaultWmumBootstraprFileHashAlgorithm} = "SHA256"
+
+${defaultCceBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/cc-def-10.15-fix8-w64.bat"
+${defaultCceBootstrapFileHash} = "489c2c6d831aca75ffcf24a931606982a1b5ab9bd33bd8324c2722a6ea0438d4"
+${defaultCceBootstraprFileHashAlgorithm} = "SHA256"
 
 #################### Auditing & the folders castle
 # All executions are producing logs in the audit folder
@@ -95,7 +100,7 @@ function Debug-WmUifwLogD {
 function Invoke-EnvironmentSubstitution() {
   param([Parameter(ValueFromPipeline)][string]$InputObject)
 
-  Get-ChildItem Env: | Set-Variable
+  #Get-ChildItem Env: | Set-Variable
   $ExecutionContext.InvokeCommand.ExpandString($InputObject)
 }
 
@@ -264,31 +269,58 @@ function Resolve-WebFileWithChecksumVerification {
 
 function Resolve-DefaultInstaller() {
   param (
-    # Where to download from
-    [Parameter(Mandatory = $false)]
-    [string]$url = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe",
-
     # where to save the file 
     [Parameter(Mandatory = $false)]
     [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
 
-    # where to save the file 
     [Parameter(Mandatory = $false)]
-    [string]${fileName} = "installer.exe",
-    # Hash to be checked
-    [Parameter(Mandatory = $false)]
-    [string]${expectedHash} = "cdfff7e2f420d182a4741d90e4ee02eb347db28bdaa4969caca0a3ac1146acd3",
-
-    # Hash to be checked
-    [Parameter(Mandatory = $false)]
-    [string]${hashAlgoritm} = "SHA256"
+    [string]${fileName} = "installer.exe"
   )
 
   Resolve-WebFileWithChecksumVerification `
-    -url ${url} -expectedHash ${expectedHash} `
+    -url ${defaultInstallerDownloadURL} `
+    -expectedHash ${defaultInstallerFileHash} `
+    -hashAlgoritm ${defaultInstallerFileHashAlgorithm} `
     -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
-    -fileName ${fileName} -hashAlgoritm ${hashAlgoritm}
+    -fileName ${fileName}
 }
+
+function Resolve-DefaultUpdateManagerBootstrap() {
+  param (
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
+
+    [Parameter(Mandatory = $false)]
+    [string]${fileName} = "updateManagerBootstrap.exe"
+  )
+
+  Resolve-WebFileWithChecksumVerification `
+    -url ${defaultWmumBootstrapDownloadURL} `
+    -expectedHash ${defaultWmumBootstrapFileHash} `
+    -hashAlgoritm ${defaultWmumBootstraprFileHashAlgorithm} `
+    -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
+    -fileName ${fileName}
+}
+
+function Resolve-DefaultCceBootstrap() {
+  param (
+    # where to save the file 
+    [Parameter(Mandatory = $false)]
+    [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
+
+    [Parameter(Mandatory = $false)]
+    [string]${fileName} = "updateManagerBootstrap.exe"
+  )
+
+  Resolve-WebFileWithChecksumVerification `
+    -url ${defaultCceBootstrapDownloadURL} `
+    -expectedHash ${defaultCceBootstrapFileHash} `
+    -hashAlgoritm ${defaultCceBootstraprFileHashAlgorithm} `
+    -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
+    -fileName ${fileName}
+}
+
 
 ############## Initialize Variables
 # This library is founded on a set of variables
