@@ -1,3 +1,8 @@
+
+## Convenient Constanst
+${pathSep} = [IO.Path]::DirectorySeparatorChar
+# TODO: enforce, this is a bit naive
+${sysTemp} = ${env:TEMP} ?? '/tmp'
 # Context constants
 ${defaultInstallerDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20230725-w64.exe"
 ${defaultInstallerFileHash} = "26236aac5e5c20c60d2f7862c606cdfdd86f08e0a1a39dbfc3e09d2ba50b8bce"
@@ -6,7 +11,6 @@ ${defaultInstallerFileHashAlgorithm} = "SHA256"
 ${defaultSumBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGUpdateManagerInstaller20230322-11-Windows.exe"
 ${defaultSumBootstrapFileHash} = "f64d438c23acd7d41f22e632ef067f47afc19f12935893ffc89ea2ccdfce1c02"
 ${defaultSumBootstraprFileHashAlgorithm} = "SHA256"
-
 
 #################### Auditing & the folders castle
 # All executions are producing logs in the audit folder
@@ -22,7 +26,7 @@ function Set-LogSessionDir {
 
 function Set-TodayLogSessionDir {
   ${auditDir} = Get-Variable -Name 'AuditBaseDir' -Scope Script -ValueOnly
-  Set-LogSessionDir -NewSessionDir "${auditDir}/$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%d')"
+  Set-LogSessionDir -NewSessionDir "${auditDir}${pathSep}$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%d')"
 }
 
 function Get-LogSessionDir {
@@ -100,12 +104,11 @@ function Get-NewTempDir() {
     # log message
     [Parameter(Mandatory = $false)]
     [string]${tmpBaseDir} = `
-    $(Get-Variable -Name 'TempSessionDir' -Scope Script) ?? `
-      ${env:TEMP} ?? '/tmp'
+    $(Get-Variable -Name 'TempSessionDir' -Scope Script) ?? ${sysTemp}
   )
 
-  if ( ${tmpBaseDir}.Substring(${tmpBaseDir}.Length - 1, 1) -ne [IO.Path]::DirectorySeparatorChar ) {
-    ${tmpBaseDir} += [IO.Path]::DirectorySeparatorChar
+  if ( ${tmpBaseDir}.Substring(${tmpBaseDir}.Length - 1, 1) -ne ${pathSep} ) {
+    ${tmpBaseDir} += ${pathSep}
   }
 
   $r = $tmpBaseDir + (Get-Date -UFormat "%y%m%d%R" | ForEach-Object { $_ -replace ":", "." })
@@ -228,7 +231,7 @@ function Resolve-WebFileWithChecksumVerification {
   )
 
   # Calculate the SHA256 hash of the downloaded file
-  $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
+  $fullFilePath = "${fullOutputDirectoryPath}${pathSep}${fileName}"
   Debug-WmUifwLogI "checking file $fullFilePath ..."
 
   # if File exists, just check the checksum
@@ -243,7 +246,7 @@ function Resolve-WebFileWithChecksumVerification {
     else {
       Debug-WmUifwLogI("wmUifwCommon| Resolve-WebFileWithChecksumVerification() - checking file $fullFilePath ...")
       Debug-WmUifwLogE "wmUifwCommon| Resolve-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash. Downloaded file renamed"
-      Debug-WmUifwLogE "Got $fileHash.Hash, but expected $expectedHash!"
+      Debug-WmUifwLogE "Got " + $fileHash.Hash + ", but expected $expectedHash!"
       return $false
     }
   }
@@ -267,7 +270,7 @@ function Resolve-DefaultInstaller() {
 
     # where to save the file 
     [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = "../09.artifacts",
+    [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
 
     # where to save the file 
     [Parameter(Mandatory = $false)]
@@ -292,13 +295,12 @@ function Resolve-DefaultInstaller() {
 # The scripts are expected to use scoped variables
 # The variables resolved here are "global" for the script importing this module
 function Resolve-WmusfCommonModuleLocals() {
-  ${sysTemp} = ${env:TEMP} ?? '/tmp'
   ${tempFolder} = ${env:WMUSF_TEMP_DIR} ?? `
-    ${sysTemp} + [IO.Path]::DirectorySeparatorChar + "WMUSF"
+    ${sysTemp} + ${pathSep} + "WMUSF"
   Set-Variable -Name 'TempSessionDir' -Value ${tempFolder} -Scope Script
   Write-Host "TempSessionDir script variable set to ${tempFolder}"
 
-  ${auditDir} = ${env:WMUSF_AUDIT_DIR} ?? "${tempFolder}/WMUSF_AUDIT"
+  ${auditDir} = ${env:WMUSF_AUDIT_DIR} ?? "${tempFolder}${pathSep}WMUSF_AUDIT"
   Set-Variable -Name 'AuditBaseDir' -Value ${auditDir} -Scope Script
 
   ${logSessionDir} = $(${env:WMUSF_LOG_SESSION_DIR} ?? `

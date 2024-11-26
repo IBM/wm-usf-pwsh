@@ -34,15 +34,23 @@ pushd . >> %l%
 
 echo %TIME% - 01.s - Downloading powershell msi installer from %pu% ... >> %l%
 
-curl -o c:\t\a.msi -L %pu% >> %l%
+:: Test - is curl launched too early?
+timeout /T 10
+
+curl -o c:\t\a.msi -L %pu% -v >> %l% 2>>%l%.err
 
 SET rd=%ERRORLEVEL%
+
+if "%rd%"=="0" GOTO INSTALL_PWSH
+GOTO ERR
+
+:INSTALL_PWSH
 
 echo %TIME% - 01.s - curl download result is: %rd% >> %l%
 
 echo %TIME% - 01.s - Installing pwsh ... >> %l%
 
-msiexec.exe /I c:\t\a.msi /passive /QN /L*V ^
+msiexec.exe /I c:\t\a.msi /passive /QB /L*V ^
   Y:\sandbox\msilog.log MYPROPERTY=1 ^
   >> %l%
 
@@ -67,5 +75,11 @@ echo %TIME% - 01.s - Finished>> %l%
 
 ::cmd /c start notepad %l%
 ::start cmd /c "echo Finished installing, press any key to see the log. & timeout 5 & start notepad %l%"
-start cmd /c "echo Finished installing & timeout 5"
+start cmd /c "echo Finished installing & timeout /T 10"
+GOTO END
 
+:ERR 
+
+start cmd /c "echo Error installing PWSH: %rd% & timeout /T 120"
+
+:END

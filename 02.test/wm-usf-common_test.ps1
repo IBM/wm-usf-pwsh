@@ -1,5 +1,8 @@
 Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force || exit 1
 
+## Convenient Constanst
+${pathSep} = [IO.Path]::DirectorySeparatorChar
+
 function checkPester() {
   $pesterModules = @( Get-Module -Name "Pester" -ErrorAction "SilentlyContinue" );
   if ( ($null -eq $pesterModules) -or ($pesterModules.Length -eq 0) ) {
@@ -49,10 +52,12 @@ Describe "Basics" {
 
     It 'Sets Today Logging Folder' {
       ${lsd} = Get-LogSessionDir
-      Set-LogSessionDir -NewSessionDir '/tmp/log1'
-      Get-LogSessionDir | Should -Be '/tmp/log1'
+
+      ${localTempBaseDir} = ($env:TEMP ?? "/tmp") + ${pathSep} + "log1"
+      Set-LogSessionDir -NewSessionDir ${localTempBaseDir}
+      Get-LogSessionDir | Should -Be ${localTempBaseDir}
       Set-TodayLogSessionDir
-      Get-LogSessionDir | Should -Not -Be '/tmp/log1'
+      Get-LogSessionDir | Should -Not -Be ${localTempBaseDir}
       Set-LogSessionDir -NewSessionDir "${lsd}"
       Get-LogSessionDir | Should -Be "${lsd}"
     }
@@ -60,14 +65,17 @@ Describe "Basics" {
 
   Context 'Temp Directories' {
     It 'Checks trailing separator passed' {
-      ${newTmpDir} = $(Get-NewTempDir("/tmp" + [IO.Path]::DirectorySeparatorChar))
-      ${newTmpDir}.Substring(0, 6) | Should -Not -Be $("/tmp" + [IO.Path]::DirectorySeparatorChar + [IO.Path]::DirectorySeparatorChar)
-
+      ${localTempBaseDir} = "." + ${pathSep} + "tmp" + ${pathSep}
+      ${newTmpDir} = $(Get-NewTempDir(${localTempBaseDir}))
+      ${newTmpDir}.Substring(0, ${localTempBaseDir}.Length + 1) | `
+        Should -Not -Be $(${localTempBaseDir} + ${pathSep} + ${pathSep})
     }
     It 'Checks trailing separator not passed' {
-      ${newTmpDir} = Get-NewTempDir("/tmp")
-      ${newTmpDir}.Substring(0, 5) | Should -Be $("/tmp" + [IO.Path]::DirectorySeparatorChar)
-
+      ${localTempBaseDir} = "." + ${pathSep} + "tmp"
+      ${newTmpDir} = Get-NewTempDir(${localTempBaseDir})
+      ${newTmpDir}.Substring(0, ${localTempBaseDir}.Length + 1) | `
+        Should -Be $(${localTempBaseDir} + ${pathSep})
+      ${localTempBaseDir}
     }
     It 'Create and destroy new temp dir' {
       ${newTmpDir} = Get-NewTempDir($env:TEMP ?? "/tmp")
