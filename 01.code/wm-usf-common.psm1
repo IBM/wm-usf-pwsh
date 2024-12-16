@@ -19,6 +19,9 @@ ${defaultCceBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstall
 ${defaultCceBootstrapFileHash} = "489c2c6d831aca75ffcf24a931606982a1b5ab9bd33bd8324c2722a6ea0438d4"
 ${defaultCceBootstraprFileHashAlgorithm} = "SHA256"
 
+${debugOn} = ${env:WM_USF_DEBUG_ON} ?? 0
+Write-Host "debugOn = ${debugOn}"
+
 #################### Auditing & the folders castle
 # All executions are producing logs in the audit folder
 
@@ -53,13 +56,20 @@ function Debug-WmUifwLog {
     [string]${msg},
     # log severity
     [Parameter(Mandatory = $false)]
-    [string]${sev} = "INF"
+    [string]${sev} = "I"
   )
   $l = Get-LogSessionDir
   ${callingPoint} = $(Get-PSCallStack).SyncRoot.Get(2)
-  ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')|${sev}|${callingPoint}|${msg}"
-  Write-Host "${fs}"
-  Add-content "${l}/session.log" -value "$fs"
+  if (${debugOn} -eq 0) {
+    ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')${sev}|${msg}"
+    Write-Host "${fs}"
+    Add-content "${l}/session.log" -value "$fs"
+  }
+  else {
+    ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')${sev}|${callingPoint}|${msg}"
+    Write-Host "${fs}"
+    Add-content "${l}/session.log" -value "$fs"
+  }
 }
 
 function Debug-WmUifwLogI {
@@ -77,7 +87,7 @@ function Debug-WmUifwLogW {
     [Parameter(Mandatory = $true)]
     [string]$msg
   )
-  Debug-WmUifwLog -msg $msg -sev "WRN"
+  Debug-WmUifwLog -msg $msg -sev "W"
 }
 
 function Debug-WmUifwLogE {
@@ -86,7 +96,7 @@ function Debug-WmUifwLogE {
     [Parameter(Mandatory = $true)]
     [string]$msg
   )
-  Debug-WmUifwLog -msg $msg -sev "ERR"
+  Debug-WmUifwLog -msg $msg -sev "E"
 }
 
 function Debug-WmUifwLogD {
@@ -95,7 +105,9 @@ function Debug-WmUifwLogD {
     [Parameter(Mandatory = $true)]
     [string]$msg
   )
-  Debug-WmUifwLog -msg $msg -sev "DBG"
+  if (${debugOn} -eq 1) {
+    Debug-WmUifwLog -msg $msg -sev "D"
+  }
 }
 ##### End Audit
 
@@ -242,35 +254,36 @@ function Get-WebFileWithChecksumVerification {
     [string]$hashAlgoritm = "SHA256"
   )
 
-  Debug-WmUifwLogI "Downloading file $fullOutputDirectoryPath/$fileName"
-  Debug-WmUifwLogI "From $url"
-  Debug-WmUifwLogI "Guaranteeing $hashAlgoritm checksum $expectedHash"
+  Debug-WmUifwLogI "Downloading file ${fullOutputDirectoryPath}/${fileName}"
+  Debug-WmUifwLogI "From ${url}"
+  Debug-WmUifwLogI "Guaranteeing ${hashAlgoritm} checksum ${expectedHash}"
   
   # assure destination folder
-  Debug-WmUifwLogI "Eventually create folder $fullOutputDirectoryPath..."
-  New-Item -Path $fullOutputDirectoryPath -ItemType Directory -Force | Out-Null
-  $fullFilePath = "$fullOutputDirectoryPath/$fileName"
+  Debug-WmUifwLogI "Eventually create folder ${fullOutputDirectoryPath}..."
+  New-Item -Path ${fullOutputDirectoryPath} -ItemType Directory -Force | Out-Null
+  $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
   # Download the file
-  Invoke-WebRequest -Uri $url -OutFile "$fullFilePath.verify"
+  Invoke-WebRequest -Uri ${url} -OutFile "${fullFilePath}.verify"
 
   # Calculate the SHA256 hash of the downloaded file
-  $fileHash = Get-FileHash -Path "$fullFilePath.verify" -Algorithm $hashAlgoritm
+  ${fileHash} = Get-FileHash -Path "${fullFilePath}.verify" -Algorithm ${hashAlgoritm}
   Debug-WmUifwLogI("File hash is " + ${fileHash}.Hash.ToString() + " .")
   #Write-Host $fileHash
   # Compare the calculated hash with the expected hash
   $r = $false
-  if ($fileHash.Hash -eq $expectedHash) {
-    Rename-Item -Path "$fullFilePath.verify" -NewName "$fullFilePath"
+  if (${fileHash}.Hash -eq ${expectedHash}) {
     Debug-WmUifwLogI "The file's $hashAlgoritm hash matches the expected hash."
+    Debug-WmUifwLogI "Renaming ${fullFilePath}.verify to ${fullFilePath}"
+    Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
     $r = $true
   }
   else {
-    Rename-Item -Path "$fullFilePath.verify" -NewName "$fullFilePath.dubious"
-    Debug-WmUifwLogE "wmUifwCommon| Get-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash."
-    Debug-WmUifwLogE "Got $fileHash.Hash, but expected $expectedHash!"
+    Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}.dubious"
+    Debug-WmUifwLogE "wmUifwCommon| Get-WebFileWithChecksumVerification() - The file's ${hashAlgoritm} hash does not match the expected hash."
+    Debug-WmUifwLogE "Got ${fileHash}.Hash, but expected ${expectedHash}!"
   }
-  Debug-WmUifwLogI("wmUifwCommon|Get-WebFileWithChecksumVerification returns $r")
-  return $r
+  Debug-WmUifwLogI("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
+  return ${r}
 }
 
 function Resolve-WebFileWithChecksumVerification {
@@ -311,7 +324,7 @@ function Resolve-WebFileWithChecksumVerification {
     else {
       Debug-WmUifwLogI("wmUifwCommon| Resolve-WebFileWithChecksumVerification() - checking file $fullFilePath ...")
       Debug-WmUifwLogE "wmUifwCommon| Resolve-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash. Downloaded file renamed"
-      Debug-WmUifwLogE "Got " + $fileHash.Hash + ", but expected $expectedHash!"
+      Debug-WmUifwLogE ("Got " + ${fileHash}.Hash + ", but expected $expectedHash!")
       return $false
     }
   }
@@ -370,7 +383,7 @@ function Resolve-DefaultCceBootstrap() {
     [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
 
     [Parameter(Mandatory = $false)]
-    [string]${fileName} = "updateManagerBootstrap.exe"
+    [string]${fileName} = "cceBootstrap.exe"
   )
 
   Resolve-WebFileWithChecksumVerification `

@@ -18,7 +18,14 @@ function checkPester() {
   }
   Write-Output "Pester module OK"
 }
-checkPester || exit 1 # Cannot continue if pester setup is incorrect
+
+try {
+  checkPester
+}
+catch {
+  Write-Host "FATAL - Pester module KO!"
+  exit 1
+}
 
 Describe "Resolves webMethods Downloadable Files" {
   Context 'Download Center' {
