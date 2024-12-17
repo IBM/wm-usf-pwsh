@@ -31,6 +31,7 @@ try {
 }
 catch {
   Write-Host "FATAL - Pester module KO!"
+  $_
   exit 1 # Cannot continue if pester setup is incorrect
 }
 
