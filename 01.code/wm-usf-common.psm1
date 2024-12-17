@@ -43,6 +43,11 @@ function Get-LogSessionDir {
   # Retrieve the module-scoped variable
   Get-Variable -Name 'LogSessionDir' -Scope Script -ValueOnly
 }
+function Get-WmUsfHomeDir() {
+  #Get-Variable -Name 'WmUsfHomeDir' -Scope Script -ValueOnly
+  #Set-Variable -Name 'WmUsfHomeDir' -Value (GetItem ${PSScriptRoot}).parent -Scope Script
+  (Get-Item ${PSScriptRoot}).parent
+}
 
 function Get-TempSessionDir {
   # Retrieve the module-scoped variable
@@ -394,6 +399,31 @@ function Resolve-DefaultCceBootstrap() {
     -fileName ${fileName}
 }
 
+function Get-CheckSumsForAllFilesinFolder {
+  param (
+    # What folder to inspect
+    [Parameter(Mandatory = $true)]
+    [string]${Path},
+
+    # where to save the results
+    [Parameter(Mandatory = $false)]
+    [string]${OutFile} = "${Path}${pathSep}checksums.txt",
+
+    # Hash to be checked
+    [Parameter(Mandatory = $false)]
+    [string]${hashAlgoritm} = "SHA256"
+  )
+
+  # Get all files in the folder (and subfolders if needed)
+  $files = Get-ChildItem -Path $Path -Recurse | Where-Object { ! $_.PSIsContainer }
+  ${checksums} = @()
+  foreach ($file in $files) {
+    Debug-WmUifwLogI "Computing the checksum for file: $($file.FullName)"
+    ${line} = Get-FileHash -Path "$($file.FullName)" -Algorithm ${hashAlgoritm}
+    ${checksums} += (${line}.hash + "<--$($file.FullName)")
+  }
+  ${checksums} | Sort-Object | Out-File -FilePath ${OutFile}
+}
 
 ############## Initialize Variables
 # This library is founded on a set of variables
@@ -418,6 +448,7 @@ function Resolve-WmusfCommonModuleLocals() {
   Debug-WmUifwLogD "AuditBaseDir: ${auditDir}"
   Debug-WmUifwLogD "LogSessionDir: ${logSessionDir}"
   Debug-WmUifwLogD "TempSessionDir: ${tempFolder}"
+  Debug-WmUifwLogI "WmUsHome: $(Get-WmUsfHomeDir)"
 
 }
 Resolve-WmusfCommonModuleLocals

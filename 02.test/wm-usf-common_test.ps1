@@ -55,6 +55,17 @@ Describe "Basics" {
       Set-Variable -Name "TestVariable3" -Value "ZZ" -Scope Global
       ${inString} | Invoke-EnvironmentSubstitution | Should -Be 'begin|||ZZ|end'
     }
+
+    It 'Checks wmUsfHomeDir' {
+      ${WmUsfHomeDir} = Get-WmUsfHomeDir
+      ${WmUsfHomeDir} | Should -Not -Be $null
+      Test-Path -Path ${WmUsfHomeDir} -PathType Container | Should -Be $true
+    }
+    It 'Checks folder contents checksums' {
+      ${WmUsfHomeDir} = Get-WmUsfHomeDir
+      Get-CheckSumsForAllFilesinFolder -Path ${WmUsfHomeDir}
+      Test-Path -Path ${WmUsfHomeDir}${pathSep}checksums.txt | Should -Be $true
+    }
   }
 
   # TODO: Epand the script variable management
