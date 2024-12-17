@@ -383,7 +383,7 @@ function Resolve-DefaultCceBootstrap() {
     [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
 
     [Parameter(Mandatory = $false)]
-    [string]${fileName} = "cceBootstrap.exe"
+    [string]${fileName} = "cceBootstrap.bat"
   )
 
   Resolve-WebFileWithChecksumVerification `
