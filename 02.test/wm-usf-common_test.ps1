@@ -5,7 +5,7 @@ ${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
 
 ## Convenient ConstanstpesVersion
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
-${pesVersion} = ${env:PESTER_VERSION} || '5.6.1'
+${pesVersion} = ${env:PESTER_VERSION} ?? "5.6.1"
 
 function checkPester() {
   $pesterModules = @( Get-Module -Name "Pester" -ErrorAction "SilentlyContinue" );
