@@ -18,7 +18,7 @@
 
   <!-- c:\k This is our artifacts folder -->
   <MappedFolder>
-    <HostFolder>${env:currentDirectory}\artifacts</HostFolder>
+    <HostFolder>${env:currentDirectory}\..\..\09.artifacts</HostFolder>
     <ReadOnly>false</ReadOnly>
     <SandboxFolder>c:\k</SandboxFolder>
   </MappedFolder>
