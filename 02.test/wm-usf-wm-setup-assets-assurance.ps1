@@ -31,12 +31,6 @@ catch {
 
 Describe "Resolves webMethods Downloadable Files" {
   Context 'Download Center' {
-    It 'Resolves Installer for Windows' {
-      $url = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe"
-      $ckSum = "cdfff7e2f420d182a4741d90e4ee02eb347db28bdaa4969caca0a3ac1146acd3"
-      Resolve-WebFileWithChecksumVerification `
-        -url $url -expectedHash $ckSum | Should -Be $true
-    }
 
     It 'Resolves Default Installer for Windows' {
       Resolve-DefaultInstaller | Should -Be $true

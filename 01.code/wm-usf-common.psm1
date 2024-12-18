@@ -8,19 +8,21 @@ ${sysTemp} = ${env:TEMP} ?? '/tmp'
 
 # Context constants
 ${defaultInstallerDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe"
+${defaultInstallerFileName} = "SoftwareAGInstaller20240626-w64.exe"
 ${defaultInstallerFileHash} = "cdfff7e2f420d182a4741d90e4ee02eb347db28bdaa4969caca0a3ac1146acd3"
 ${defaultInstallerFileHashAlgorithm} = "SHA256"
 
 ${defaultWmumBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
+${defaultWmumBootstrapFileName} = "SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
 ${defaultWmumBootstrapFileHash} = "53d283ba083a3535dd12831aa05ab0e8a590ff577053ab9eebedabe5a499fbfa"
 ${defaultWmumBootstraprFileHashAlgorithm} = "SHA256"
 
 ${defaultCceBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/cc-def-10.15-fix8-w64.bat"
-${defaultCceBootstrapFileHash} = "489c2c6d831aca75ffcf24a931606982a1b5ab9bd33bd8324c2722a6ea0438d4"
+${defaultCceBootstrapFileName} = "cc-def-10.15-fix8-w64.bat"
+${defaultCceBootstrapFileHash} = "728488F53CFD54B5835205F960C6501FE96B14408529EAA048441BA711B8F614"
 ${defaultCceBootstraprFileHashAlgorithm} = "SHA256"
 
 ${debugOn} = ${env:WM_USF_DEBUG_ON} ?? 0
-Write-Host "debugOn = ${debugOn}"
 
 #################### Auditing & the folders castle
 # All executions are producing logs in the audit folder
@@ -261,33 +263,33 @@ function Get-WebFileWithChecksumVerification {
 
   Debug-WmUifwLogI "Downloading file ${fullOutputDirectoryPath}/${fileName}"
   Debug-WmUifwLogI "From ${url}"
-  Debug-WmUifwLogI "Guaranteeing ${hashAlgoritm} checksum ${expectedHash}"
   
   # assure destination folder
-  Debug-WmUifwLogI "Eventually create folder ${fullOutputDirectoryPath}..."
+  Debug-WmUifwLogD "Eventually create folder ${fullOutputDirectoryPath}..."
   New-Item -Path ${fullOutputDirectoryPath} -ItemType Directory -Force | Out-Null
   $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
   # Download the file
   Invoke-WebRequest -Uri ${url} -OutFile "${fullFilePath}.verify"
 
   # Calculate the SHA256 hash of the downloaded file
+  Debug-WmUifwLogD "Guaranteeing ${hashAlgoritm} checksum ${expectedHash}"
   ${fileHash} = Get-FileHash -Path "${fullFilePath}.verify" -Algorithm ${hashAlgoritm}
-  Debug-WmUifwLogI("File hash is " + ${fileHash}.Hash.ToString() + " .")
+  Debug-WmUifwLogD("File hash is " + ${fileHash}.Hash.ToString() + " .")
   #Write-Host $fileHash
   # Compare the calculated hash with the expected hash
   $r = $false
   if (${fileHash}.Hash -eq ${expectedHash}) {
     Debug-WmUifwLogI "The file's $hashAlgoritm hash matches the expected hash."
-    Debug-WmUifwLogI "Renaming ${fullFilePath}.verify to ${fullFilePath}"
+    Debug-WmUifwLogD "Renaming ${fullFilePath}.verify to ${fullFilePath}"
     Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
     $r = $true
   }
   else {
     Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}.dubious"
-    Debug-WmUifwLogE "wmUifwCommon| Get-WebFileWithChecksumVerification() - The file's ${hashAlgoritm} hash does not match the expected hash."
+    Debug-WmUifwLogE "The file's ${hashAlgoritm} hash does not match the expected hash."
     Debug-WmUifwLogE "Got ${fileHash}.Hash, but expected ${expectedHash}!"
   }
-  Debug-WmUifwLogI("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
+  Debug-WmUifwLogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
   return ${r}
 }
 
@@ -315,25 +317,24 @@ function Resolve-WebFileWithChecksumVerification {
 
   # Calculate the SHA256 hash of the downloaded file
   $fullFilePath = "${fullOutputDirectoryPath}${pathSep}${fileName}"
-  Debug-WmUifwLogI "checking file $fullFilePath ..."
+  Debug-WmUifwLogI "Resolving file $fullFilePath ..."
 
   # if File exists, just check the checksum
   if (Test-Path $fullFilePath -PathType Leaf) {
-    Debug-WmUifwLogI("file $fullFilePath found.")
+    Debug-WmUifwLogD("file $fullFilePath already exists.")
     $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgoritm
-    Debug-WmUifwLogI("its hash is " + $fileHash.Hash)
+    Debug-WmUifwLogD("its hash is " + $fileHash.Hash)
     if ($fileHash.Hash -eq $expectedHash) {
-      Debug-WmUifwLogI "The file's $hashAlgoritm hash matches the expected hash."
+      Debug-WmUifwLogD "The file's $hashAlgoritm hash matches the expected hash."
       return $true
     }
     else {
-      Debug-WmUifwLogI("wmUifwCommon| Resolve-WebFileWithChecksumVerification() - checking file $fullFilePath ...")
-      Debug-WmUifwLogE "wmUifwCommon| Resolve-WebFileWithChecksumVerification() - The file's $hashAlgoritm hash does not match the expected hash. Downloaded file renamed"
+      Debug-WmUifwLogE "The $fullFilePath file's $hashAlgoritm hash does not match the expected hash. Downloaded file renamed"
       Debug-WmUifwLogE ("Got " + ${fileHash}.Hash + ", but expected $expectedHash!")
       return $false
     }
   }
-  Debug-WmUifwLogI("file $fullFilePath does not exist. Attempting to download...")
+  Debug-WmUifwLogD("file $fullFilePath does not exist. Attempting to download...")
   $r = Get-WebFileWithChecksumVerification `
     -url "$url" `
     -fullOutputDirectoryPath "$fullOutputDirectoryPath" `
@@ -341,7 +342,7 @@ function Resolve-WebFileWithChecksumVerification {
     -expectedHash "$expectedHash" `
     -hashAlgoritm "$hashAlgoritm"
   
-  Debug-WmUifwLogI "Initialize-SumBootstrapBinary returns $r"
+  Debug-WmUifwLogD "Resolve-WebFileWithChecksumVerification returns $r"
   return $r
 }
 
@@ -352,7 +353,7 @@ function Resolve-DefaultInstaller() {
     [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
 
     [Parameter(Mandatory = $false)]
-    [string]${fileName} = "installer.exe"
+    [string]${fileName} = ${defaultInstallerFileName}
   )
 
   Resolve-WebFileWithChecksumVerification `
@@ -370,7 +371,7 @@ function Resolve-DefaultUpdateManagerBootstrap() {
     [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
 
     [Parameter(Mandatory = $false)]
-    [string]${fileName} = "updateManagerBootstrap.exe"
+    [string]${fileName} = ${defaultWmumBootstrapFileName}
   )
 
   Resolve-WebFileWithChecksumVerification `
@@ -388,7 +389,7 @@ function Resolve-DefaultCceBootstrap() {
     [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
 
     [Parameter(Mandatory = $false)]
-    [string]${fileName} = "cceBootstrap.bat"
+    [string]${fileName} = ${defaultCceBootstrapFileName}
   )
 
   Resolve-WebFileWithChecksumVerification `
@@ -433,7 +434,6 @@ function Resolve-WmusfCommonModuleLocals() {
   ${tempFolder} = ${env:WMUSF_TEMP_DIR} ?? `
     ${sysTemp} + ${pathSep} + "WMUSF"
   Set-Variable -Name 'TempSessionDir' -Value ${tempFolder} -Scope Script
-  Write-Host "TempSessionDir script variable set to ${tempFolder}"
 
   ${auditDir} = ${env:WMUSF_AUDIT_DIR} ?? "${tempFolder}${pathSep}WMUSF_AUDIT"
   Set-Variable -Name 'AuditBaseDir' -Value ${auditDir} -Scope Script
@@ -448,7 +448,7 @@ function Resolve-WmusfCommonModuleLocals() {
   Debug-WmUifwLogD "AuditBaseDir: ${auditDir}"
   Debug-WmUifwLogD "LogSessionDir: ${logSessionDir}"
   Debug-WmUifwLogD "TempSessionDir: ${tempFolder}"
-  Debug-WmUifwLogI "WmUsHome: $(Get-WmUsfHomeDir)"
+  Debug-WmUifwLogD "WmUsHome: $(Get-WmUsfHomeDir)"
 
 }
 Resolve-WmusfCommonModuleLocals
