@@ -189,7 +189,7 @@ function Invoke-WinrsAuditedCommandOnServerList {
     ${active} = Invoke-AuditedCommand "winrs -r:$_ echo a" "${tag}_active_$_"
     if (${active} -eq "0") {
       Debug-WmUifwLogI "Invoking command having tag ${tag} on server $_ ..."
-      Invoke-AuditedCommand "winrs -r:$_ ${command}" "${tag}"
+      Invoke-AuditedCommand "winrs -r:$_ ${command}" "${tag}_$_"
     }
     else {
       Debug-WmUifwLogE "Server $_ not active!"
