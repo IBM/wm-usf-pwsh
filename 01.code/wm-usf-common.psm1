@@ -149,9 +149,10 @@ function Invoke-AuditedCommand() {
   ${fullCmd} += "${baseOutputFileName}.out.txt"
   ${fullCmd} += '" 2>>"'
   ${fullCmd} += "${baseOutputFileName}.err.txt"
-  if(${posixCmd}){
+  if (${posixCmd}) {
     ${fullCmd} += '" || echo $LastExitCode >"'
-  }else{
+  }
+  else {
     # TODO: Find out how to capture the real exit code in Windows
     ${fullCmd} += '" || echo 255 >"'
   }
@@ -170,7 +171,7 @@ function Invoke-AuditedCommand() {
   return ${exitCode} 
 }
 
-function Invoke-WinrsAuditedCommandOnServerList{
+function Invoke-WinrsAuditedCommandOnServerList {
   param (
     [Parameter(Mandatory = $true)]
     [string]${command},
@@ -181,19 +182,20 @@ function Invoke-WinrsAuditedCommandOnServerList{
     [Parameter(Mandatory = $true)]
     [string]${serverListFile}
   )
-}
-Debug-WmUifwLogI "Reading boxes from file ${serverListFile} ..."
-Get-Content -Path "${serverListFile}" | ForEach-Object {
+
+  Debug-WmUifwLogI "Reading boxes from file ${serverListFile} ..."
+  Get-Content -Path "${serverListFile}" | ForEach-Object {
     Debug-WmUifwLogI "Checking if box $_ is active..."
     ${active} = Invoke-AuditedCommand "winrs -r:$_ echo a" "${tag}_active_$_"
     if (${active} -eq "0") {
-        Debug-WmUifwLogI "Invoking command having tag ${tag} on server $_ ..."
-        Invoke-AuditedCommand "winrs -r:$_ ${command}" "${tag}"
-    }else{
-        Debug-WmUifwLogE "Server $_ not active!"
+      Debug-WmUifwLogI "Invoking command having tag ${tag} on server $_ ..."
+      Invoke-AuditedCommand "winrs -r:$_ ${command}" "${tag}"
     }
+    else {
+      Debug-WmUifwLogE "Server $_ not active!"
+    }
+  }
 }
-
 
 function Resolve-ProductVersionToLatest() {
   param (
