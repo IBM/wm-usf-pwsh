@@ -400,7 +400,7 @@ function Resolve-DefaultCceBootstrap() {
     -fileName ${fileName}
 }
 
-function Get-CheckSumsForAllFilesinFolder {
+function Get-CheckSumsForAllFilesInFolder {
   param (
     # What folder to inspect
     [Parameter(Mandatory = $true)]

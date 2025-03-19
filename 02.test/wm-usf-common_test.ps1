@@ -63,7 +63,7 @@ Describe "Basics" {
     }
     It 'Checks folder contents checksums' {
       ${WmUsfHomeDir} = Get-WmUsfHomeDir
-      Get-CheckSumsForAllFilesinFolder -Path ${WmUsfHomeDir}
+      Get-CheckSumsForAllFilesInFolder -Path ${WmUsfHomeDir}
       Test-Path -Path ${WmUsfHomeDir}${pathSep}checksums.txt | Should -Be $true
     }
   }
