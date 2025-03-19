@@ -5,6 +5,7 @@ ${pathSep} = [IO.Path]::DirectorySeparatorChar
 ${sysTemp} = ${env:TEMP} ?? '/tmp'
 #${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
 #${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
+${posixCmd} = (${pathSep} -eq '/') ? $true : $false
 
 # Context constants
 ${defaultInstallerDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe"
@@ -148,11 +149,16 @@ function Invoke-AuditedCommand() {
   ${fullCmd} += "${baseOutputFileName}.out.txt"
   ${fullCmd} += '" 2>>"'
   ${fullCmd} += "${baseOutputFileName}.err.txt"
-  ${fullCmd} += '" || echo False >"'
+  if(${posixCmd}){
+    ${fullCmd} += '" || echo $LastExitCode >"'
+  }else{
+    # TODO: Find out how to capture the real exit code in Windows
+    ${fullCmd} += '" || echo 255 >"'
+  }
   ${fullCmd} += "${baseOutputFileName}.exitcode.${ts}.txt"
   ${fullCmd} += '"'
 
-  Add-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt" -Value "True"
+  Add-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt" -Value "0"
   Debug-WmUifwLogD "Executing Command:"
 
   Debug-WmUifwLogD "${fullCmd}"
@@ -160,7 +166,7 @@ function Invoke-AuditedCommand() {
   Invoke-Expression "${fullCmd}"
   ${exitCode} = Get-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt"
 
-  Debug-WmUifwLogD "Command exitted with code ${exitCode}"
+  Debug-WmUifwLogD "Command exited with code ${exitCode}"
   return ${exitCode} 
 }
 

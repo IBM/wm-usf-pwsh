@@ -1,10 +1,11 @@
 Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force || exit 1
 
 ${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
-${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
+#${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
 
 ## Convenient ConstanstpesVersion
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
+${posixCmd} = (${pathSep} -eq '/') ? $true : $false
 ${pesVersion} = ${env:PESTER_VERSION} ?? "5.6.1"
 
 function checkPester() {
@@ -95,20 +96,21 @@ Describe "Basics" {
 
     It 'Invokes audited command' {
       if (${posixCmd}) {
-        Invoke-AuditedCommand 'ls -lart /' 'test1' | Should -Be 'True'
+        Invoke-AuditedCommand 'ls -lart /' 'test1' | Should -Be '0'
       }
       else {
-        Invoke-AuditedCommand 'dir' 'test1' | Should -Be 'True'
+        Invoke-AuditedCommand 'dir' 'test1' | Should -Be '0'
       }
     }
 
     It 'Invokes audited command having error' {
-      #$LastExitError | Should -Be $null
       if (${posixCmd}) {
-        Invoke-AuditedCommand 'ls -lart \' 'test2' | Should -Not -Be 'True'
+        $LastExitCode | Should -Be 0
+        Invoke-AuditedCommand 'ls -lart \' 'test2' | Should -Not -Be '0'
       }
       else {
-        Invoke-AuditedCommand 'dir CCC:' 'test2' | Should -Not -Be 'True' 
+        $LastExitCode | Should -Be $null
+        Invoke-AuditedCommand 'dir CCC:' 'test2' | Should -Not -Be '0' 
       }
     }
   }
