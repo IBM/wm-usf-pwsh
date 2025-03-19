@@ -264,7 +264,7 @@ function Get-WebFileWithChecksumVerification {
 
     # Hash to be checked
     [Parameter(Mandatory = $false)]
-    [string]$hashAlgoritm = "SHA256"
+    [string]$hashAlgorithm = "SHA256"
   )
 
   Debug-WmUifwLogI "Downloading file ${fullOutputDirectoryPath}/${fileName}"
@@ -278,21 +278,21 @@ function Get-WebFileWithChecksumVerification {
   Invoke-WebRequest -Uri ${url} -OutFile "${fullFilePath}.verify"
 
   # Calculate the SHA256 hash of the downloaded file
-  Debug-WmUifwLogD "Guaranteeing ${hashAlgoritm} checksum ${expectedHash}"
-  ${fileHash} = Get-FileHash -Path "${fullFilePath}.verify" -Algorithm ${hashAlgoritm}
+  Debug-WmUifwLogD "Guaranteeing ${hashAlgorithm} checksum ${expectedHash}"
+  ${fileHash} = Get-FileHash -Path "${fullFilePath}.verify" -Algorithm ${hashAlgorithm}
   Debug-WmUifwLogD("File hash is " + ${fileHash}.Hash.ToString() + " .")
   #Write-Host $fileHash
   # Compare the calculated hash with the expected hash
   $r = $false
   if (${fileHash}.Hash -eq ${expectedHash}) {
-    Debug-WmUifwLogI "The file's $hashAlgoritm hash matches the expected hash."
+    Debug-WmUifwLogI "The file's $hashAlgorithm hash matches the expected hash."
     Debug-WmUifwLogD "Renaming ${fullFilePath}.verify to ${fullFilePath}"
     Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
     $r = $true
   }
   else {
     Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}.dubious"
-    Debug-WmUifwLogE "The file's ${hashAlgoritm} hash does not match the expected hash."
+    Debug-WmUifwLogE "The file's ${hashAlgorithm} hash does not match the expected hash."
     Debug-WmUifwLogE "Got ${fileHash}.Hash, but expected ${expectedHash}!"
   }
   Debug-WmUifwLogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
@@ -318,7 +318,7 @@ function Resolve-WebFileWithChecksumVerification {
 
     # Hash to be checked
     [Parameter(Mandatory = $false)]
-    [string]${hashAlgoritm} = "SHA256"
+    [string]${hashAlgorithm} = "SHA256"
   )
 
   # Calculate the SHA256 hash of the downloaded file
@@ -328,14 +328,14 @@ function Resolve-WebFileWithChecksumVerification {
   # if File exists, just check the checksum
   if (Test-Path $fullFilePath -PathType Leaf) {
     Debug-WmUifwLogD("file $fullFilePath already exists.")
-    $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgoritm
+    $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgorithm
     Debug-WmUifwLogD("its hash is " + $fileHash.Hash)
     if ($fileHash.Hash -eq $expectedHash) {
-      Debug-WmUifwLogD "The file's $hashAlgoritm hash matches the expected hash."
+      Debug-WmUifwLogD "The file's $hashAlgorithm hash matches the expected hash."
       return $true
     }
     else {
-      Debug-WmUifwLogE "The $fullFilePath file's $hashAlgoritm hash does not match the expected hash. Downloaded file renamed"
+      Debug-WmUifwLogE "The $fullFilePath file's $hashAlgorithm hash does not match the expected hash. Downloaded file renamed"
       Debug-WmUifwLogE ("Got " + ${fileHash}.Hash + ", but expected $expectedHash!")
       return $false
     }
@@ -346,7 +346,7 @@ function Resolve-WebFileWithChecksumVerification {
     -fullOutputDirectoryPath "$fullOutputDirectoryPath" `
     -fileName "$fileName" `
     -expectedHash "$expectedHash" `
-    -hashAlgoritm "$hashAlgoritm"
+    -hashAlgorithm "$hashAlgorithm"
   
   Debug-WmUifwLogD "Resolve-WebFileWithChecksumVerification returns $r"
   return $r
@@ -365,7 +365,7 @@ function Resolve-DefaultInstaller() {
   Resolve-WebFileWithChecksumVerification `
     -url ${defaultInstallerDownloadURL} `
     -expectedHash ${defaultInstallerFileHash} `
-    -hashAlgoritm ${defaultInstallerFileHashAlgorithm} `
+    -hashAlgorithm ${defaultInstallerFileHashAlgorithm} `
     -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
     -fileName ${fileName}
 }
@@ -383,7 +383,7 @@ function Resolve-DefaultUpdateManagerBootstrap() {
   Resolve-WebFileWithChecksumVerification `
     -url ${defaultWmumBootstrapDownloadURL} `
     -expectedHash ${defaultWmumBootstrapFileHash} `
-    -hashAlgoritm ${defaultWmumBootstrapFileHashAlgorithm} `
+    -hashAlgorithm ${defaultWmumBootstrapFileHashAlgorithm} `
     -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
     -fileName ${fileName}
 }
@@ -401,7 +401,7 @@ function Resolve-DefaultCceBootstrap() {
   Resolve-WebFileWithChecksumVerification `
     -url ${defaultCceBootstrapDownloadURL} `
     -expectedHash ${defaultCceBootstrapFileHash} `
-    -hashAlgoritm ${defaultCceBootstrapFileHashAlgorithm} `
+    -hashAlgorithm ${defaultCceBootstrapFileHashAlgorithm} `
     -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
     -fileName ${fileName}
 }
@@ -418,7 +418,7 @@ function Get-CheckSumsForAllFilesInFolder {
 
     # Hash to be checked
     [Parameter(Mandatory = $false)]
-    [string]${hashAlgoritm} = "SHA256"
+    [string]${hashAlgorithm} = "SHA256"
   )
 
   # Get all files in the folder (and subfolders if needed)
@@ -426,7 +426,7 @@ function Get-CheckSumsForAllFilesInFolder {
   ${checksums} = @()
   foreach ($file in $files) {
     Debug-WmUifwLogI "Computing the checksum for file: $($file.FullName)"
-    ${line} = Get-FileHash -Path "$($file.FullName)" -Algorithm ${hashAlgoritm}
+    ${line} = Get-FileHash -Path "$($file.FullName)" -Algorithm ${hashAlgorithm}
     ${checksums} += (${line}.hash + "<--$($file.FullName)")
   }
   ${checksums} | Sort-Object | Out-File -FilePath ${OutFile}
