@@ -1,5 +1,5 @@
 
-## Convenient Constanst
+## Convenient Constants
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 # TODO: enforce, this is a bit naive
 ${sysTemp} = ${env:TEMP} ?? '/tmp'
@@ -15,14 +15,14 @@ ${defaultInstallerFileHashAlgorithm} = "SHA256"
 ${defaultWmumBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
 ${defaultWmumBootstrapFileName} = "SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
 ${defaultWmumBootstrapFileHash} = "53d283ba083a3535dd12831aa05ab0e8a590ff577053ab9eebedabe5a499fbfa"
-${defaultWmumBootstraprFileHashAlgorithm} = "SHA256"
+${defaultWmumBootstrapFileHashAlgorithm} = "SHA256"
 
 ${defaultCceBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/cc-def-10.15-fix8-w64.bat"
 ${defaultCceBootstrapFileName} = "cc-def-10.15-fix8-w64.bat"
 ${defaultCceBootstrapFileHash} = "728488F53CFD54B5835205F960C6501FE96B14408529EAA048441BA711B8F614"
-${defaultCceBootstraprFileHashAlgorithm} = "SHA256"
+${defaultCceBootstrapFileHashAlgorithm} = "SHA256"
 
-${debugOn} = ${env:WM_USF_DEBUG_ON} ?? 0
+${debugOn} = ${env:WMUSF_DEBUG_ON} ?? 0
 
 #################### Auditing & the folders castle
 # All executions are producing logs in the audit folder
@@ -377,7 +377,7 @@ function Resolve-DefaultUpdateManagerBootstrap() {
   Resolve-WebFileWithChecksumVerification `
     -url ${defaultWmumBootstrapDownloadURL} `
     -expectedHash ${defaultWmumBootstrapFileHash} `
-    -hashAlgoritm ${defaultWmumBootstraprFileHashAlgorithm} `
+    -hashAlgoritm ${defaultWmumBootstrapFileHashAlgorithm} `
     -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
     -fileName ${fileName}
 }
@@ -395,7 +395,7 @@ function Resolve-DefaultCceBootstrap() {
   Resolve-WebFileWithChecksumVerification `
     -url ${defaultCceBootstrapDownloadURL} `
     -expectedHash ${defaultCceBootstrapFileHash} `
-    -hashAlgoritm ${defaultCceBootstraprFileHashAlgorithm} `
+    -hashAlgoritm ${defaultCceBootstrapFileHashAlgorithm} `
     -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
     -fileName ${fileName}
 }
