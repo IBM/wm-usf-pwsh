@@ -170,6 +170,31 @@ function Invoke-AuditedCommand() {
   return ${exitCode} 
 }
 
+function Invoke-WinrsAuditedCommandOnServerList{
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${command},
+
+    [Parameter(Mandatory = $true)]
+    [string]${tag},
+
+    [Parameter(Mandatory = $true)]
+    [string]${serverListFile}
+  )
+}
+Debug-WmUifwLogI "Reading boxes from file ${serverListFile} ..."
+Get-Content -Path "${serverListFile}" | ForEach-Object {
+    Debug-WmUifwLogI "Checking if box $_ is active..."
+    ${active} = Invoke-AuditedCommand "winrs -r:$_ echo a" "${tag}_active_$_"
+    if (${active} -eq "0") {
+        Debug-WmUifwLogI "Invoking command having tag ${tag} on server $_ ..."
+        Invoke-AuditedCommand "winrs -r:$_ ${command}" ${tag}
+    }else{
+        Debug-WmUifwLogE "Server $_ not active!"
+    }
+}
+
+
 function Resolve-ProductVersionToLatest() {
   param (
     [Parameter(Mandatory = $true)]
