@@ -186,7 +186,7 @@ function Invoke-WinrsAuditedCommandOnServerList {
   Debug-WmUifwLogI "Reading boxes from file ${serverListFile} ..."
   Get-Content -Path "${serverListFile}" | ForEach-Object {
     Debug-WmUifwLogI "Checking if box $_ is active..."
-    ${active} = Invoke-AuditedCommand "winrs -r:$_ echo a" "${tag}_active_$_"
+    ${active} = Invoke-Expression "winrs -r:$_ ""echo 0"" || echo 254" 
     if (${active} -eq "0") {
       Debug-WmUifwLogI "Invoking command having tag ${tag} on server $_ ..."
       Invoke-AuditedCommand "winrs -r:$_ ${command}" "${tag}_$_"
