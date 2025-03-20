@@ -6,7 +6,7 @@ ${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
 ## Convenient ConstanstpesVersion
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 ${posixCmd} = (${pathSep} -eq '/') ? $true : $false
-${pesVersion} = ${env:PESTER_VERSION} ?? "5.6.1"
+${pesVersion} = ${env:PESTER_VERSION} ?? "5.7.1"
 
 function checkPester() {
   $pesterModules = @( Get-Module -Name "Pester" -ErrorAction "SilentlyContinue" );
@@ -62,10 +62,13 @@ Describe "Basics" {
       ${WmUsfHomeDir} | Should -Not -Be $null
       Test-Path -Path ${WmUsfHomeDir} -PathType Container | Should -Be $true
     }
+  }
+
+  Context 'Checksums' {
     It 'Checks folder contents checksums' {
-      ${WmUsfHomeDir} = Get-WmUsfHomeDir
-      Get-CheckSumsForAllFilesInFolder -Path ${WmUsfHomeDir}
-      Test-Path -Path ${WmUsfHomeDir}${pathSep}checksums.txt | Should -Be $true
+      ${WmTempSessionDir} = Get-TempSessionDir
+      Get-CheckSumsForAllFilesInFolder -Path ${WmTempSessionDir}
+      Test-Path -Path ${WmTempSessionDir}${pathSep}checksums.txt | Should -Be $true
     }
   }
 
