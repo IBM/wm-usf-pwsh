@@ -1,7 +1,7 @@
 ARG __ubuntu_tag=24.04
 FROM ubuntu:${__ubuntu_tag}
 
-ARG __pester_version=5.6.1
+ARG __pester_version=5.7.1
 ARG __gid=1234
 ARG __gname=vscode
 ARG __uid=1234
