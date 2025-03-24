@@ -443,20 +443,37 @@ function Get-CheckSumsForAllFilesInFolder {
     [Parameter(Mandatory = $false)]
     [string]${OutFile} = "${Path}${pathSep}checksums.txt",
 
+    # where to save the results
+    [Parameter(Mandatory = $false)]
+    [string]${OutFileNamesSorted} = "${Path}${pathSep}checksums_ns.txt",
+
     # Hash to be checked
     [Parameter(Mandatory = $false)]
     [string]${hashAlgorithm} = "SHA256"
   )
 
+  if(Test-Path -Path ${OutFile}){
+    Debug-WmUifwLogI "Removing older ${OutFile}"
+    Remove-Item -Path ${OutFile}
+  }
+
+  if(Test-Path -Path ${OutFileNamesSorted}){
+    Debug-WmUifwLogI "Removing older ${OutFileNamesSorted}"
+    Remove-Item -Path ${OutFileNamesSorted}
+  }
+
   # Get all files in the folder (and subfolders if needed)
   $files = Get-ChildItem -Path $Path -Recurse | Where-Object { ! $_.PSIsContainer }
   ${checksums} = @()
+  ${checksums2} = @()
   foreach ($file in $files) {
     Debug-WmUifwLogI "Computing the checksum for file: $($file.FullName)"
     ${line} = Get-FileHash -Path "$($file.FullName)" -Algorithm ${hashAlgorithm}
     ${checksums} += (${line}.hash + "<--$($file.FullName)")
+    ${checksums2} += ("$($file.FullName)-->" + ${line}.hash)
   }
   ${checksums} | Sort-Object | Out-File -FilePath ${OutFile}
+  ${checksums2} | Sort-Object | Out-File -FilePath ${OutFileNamesSorted}
 }
 
 ############## Initialize Variables

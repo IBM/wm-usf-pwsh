@@ -3,7 +3,7 @@ Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force || exit 1
 ${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
 #${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
 
-## Convenient ConstanstpesVersion
+## Convenient Constants
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 ${posixCmd} = (${pathSep} -eq '/') ? $true : $false
 ${pesVersion} = ${env:PESTER_VERSION} ?? "5.7.1"
@@ -29,8 +29,7 @@ function checkPester() {
 
 try {
   checkPester
-}
-catch {
+}catch {
   Write-Host "FATAL - Pester module KO!"
   $_
   exit 1 # Cannot continue if pester setup is incorrect
@@ -51,6 +50,7 @@ Describe "Basics" {
     # i.e. either env or global work
     It 'Substitutes Given Variable' {
       ${inString} = 'begin|${TestVariable1}|${TestVariable2}|$TestVariable3|end'
+      [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments','',Justification='Our substitution is not detected as a use by the linter')]
       ${TestVariable1} = "XX"
       Set-Variable -Name "TestVariable2" -Value "YY" -Scope Script
       Set-Variable -Name "TestVariable3" -Value "ZZ" -Scope Global
@@ -69,10 +69,11 @@ Describe "Basics" {
       ${WmTempSessionDir} = Get-TempSessionDir
       Get-CheckSumsForAllFilesInFolder -Path ${WmTempSessionDir}
       Test-Path -Path ${WmTempSessionDir}${pathSep}checksums.txt | Should -Be $true
+      Test-Path -Path ${WmTempSessionDir}${pathSep}checksums_ns.txt | Should -Be $true
     }
   }
 
-  # TODO: Epand the script variable management
+  # TODO: Expand the script variable management
   Context 'Audit' {
 
     It 'Gets the current Temp session dir' {
