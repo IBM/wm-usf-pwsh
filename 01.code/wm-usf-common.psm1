@@ -211,9 +211,29 @@ function Build-ProductList() {
   param (
     [Parameter(Mandatory = $true)]
     [string]${InstallationProductList}
-
   )
   return "ProductList=" + ${InstallationProductList}.Replace([environment]::Newline, ",")
+}
+
+function Get-ProductListForTemplate() {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${TemplateId}
+  )
+
+  ${templateFolder} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}".Replace('\', ${pathSep})
+  if ( -Not (Test-Path -Path ${templateFolder} -PathType Container )) {
+    Debug-WmUifwLogE "Template ${TemplateId} does not exist"
+    return 1
+  }
+
+  ${plFile} = "${templateFolder}${PathSep}ProductsList.txt"
+  if ( -Not (Test-Path -Path ${plFile} -PathType Leaf )) {
+    Debug-WmUifwLogE "File ${plFile} does not exist"
+    return 2
+  }
+
+  return ( Get-Content ${plFile} ) -join ","
 }
 
 function Get-NewTempDir() {
@@ -452,12 +472,12 @@ function Get-CheckSumsForAllFilesInFolder {
     [string]${hashAlgorithm} = "SHA256"
   )
 
-  if(Test-Path -Path ${OutFile}){
+  if (Test-Path -Path ${OutFile}) {
     Debug-WmUifwLogI "Removing older ${OutFile}"
     Remove-Item -Path ${OutFile}
   }
 
-  if(Test-Path -Path ${OutFileNamesSorted}){
+  if (Test-Path -Path ${OutFileNamesSorted}) {
     Debug-WmUifwLogI "Removing older ${OutFileNamesSorted}"
     Remove-Item -Path ${OutFileNamesSorted}
   }

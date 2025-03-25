@@ -29,7 +29,8 @@ function checkPester() {
 
 try {
   checkPester
-}catch {
+}
+catch {
   Write-Host "FATAL - Pester module KO!"
   $_
   exit 1 # Cannot continue if pester setup is incorrect
@@ -49,8 +50,8 @@ Describe "Basics" {
     }
     # i.e. either env or global work
     It 'Substitutes Given Variable' {
-      ${inString} = 'begin|${TestVariable1}|${TestVariable2}|$TestVariable3|end'
-      [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments','',Justification='Our substitution is not detected as a use by the linter')]
+      ${inString} = 'begin|${TestVariable1}|${TestVariable2}|${TestVariable3}|end'
+      [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '', Justification = 'Our substitution is not detected as a use by the linter')]
       ${TestVariable1} = "XX"
       Set-Variable -Name "TestVariable2" -Value "YY" -Scope Script
       Set-Variable -Name "TestVariable3" -Value "ZZ" -Scope Global
@@ -163,6 +164,17 @@ Describe "Basics" {
       | Should -Be "ProductList=e2ei/11/BR_10.5.0.0.LATEST/Broker/BrokerJMSShared,e2ei/11/TPS_10.11.0.0.100/SCG/tppModelling"
     }
 
+    It 'Gets fake template product list' {
+      Get-ProductListForTemplate "a/1011/b" | Should -Be 1
+    }
+
+    It 'Gets DBC 1011 product list' {
+      $pl = Get-ProductListForTemplate "DBC\1011\full" 
+      $pl | Should -Not -Be $null
+      $pl | Should -Not -Be 2
+      $pl | Should -Not -Be ""
+      Debug-WmUifwLogD "Read product list is: $pl"
+    }
   }
 
 }
