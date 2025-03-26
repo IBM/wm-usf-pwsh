@@ -545,47 +545,76 @@ function Get-ProductsImageForTemplate() {
     Debug-WmUifwLogW "Folder ${BaseFolder} does not exist, creating now..."
     New-Item -Path ${BaseFolder} -ItemType Container
   }
-  $templateDesinationfolder = "${BaseFolder}\products\${TemplateId}".Replace('\', ${pathSep})
-  if (-Not (Test-Path -Path ${templateDesinationfolder} -PathType Container)) {
-    Debug-WmUifwLogW "Folder ${templateDesinationfolder} does not exist, creating now..."
-    New-Item -Path ${templateDesinationfolder} -ItemType Container
+  $templateDestinationfolder = "${BaseFolder}\products\${TemplateId}".Replace('\', ${pathSep})
+  if (-Not (Test-Path -Path ${templateDestinationfolder} -PathType Container)) {
+    Debug-WmUifwLogW "Folder ${templateDestinationfolder} does not exist, creating now..."
+    New-Item -Path ${templateDestinationfolder} -ItemType Container
   }
-  ${zipLocation} = "$templateDesinationfolder${pathSep}products.zip"
-  $scriptLocation = "$templateDesinationfolder${pathSep}image.creation.wmscript"
-  $debugFile = "$templateDesinationfolder${pathSep}image.creation.debug.log"
+  ${zipLocation} = "$templateDestinationfolder${pathSep}products.zip"
+  $scriptLocation = "$templateDestinationfolder${pathSep}image.creation.wmscript"
+  $debugFile = "$templateDestinationfolder${pathSep}image.creation.debug.log"
 
   if (Test-Path -Path ${zipLocation} -PathType Leaf) {
     Debug-WmUifwLogI "Products zip file already exists, nothing to do"
     # Potential increment: force overwwrite
   }
-  else {}
-  if (Test-Path -Path ${scriptLocation} -PathType Leaf) {
-    Debug-WmUifwLogI "Image creation script already exists: $scriptLocation"
-    # Potential increment: force overwwrite
-  }
   else {
-    $pl = Get-ProductListForTemplate "${TemplateId}"
-    $su = Get-DownloadServerUrlForTemplate "${TemplateId}"
-    $lines = @()
-    $lines += "InstallProducts=$pl"
-    $lines += "ServerURL=$su"
-    $lines += "imagePlatform=W64"
-    $lines += "InstallLocProducts="
-    $lines += "# Workaround; installer wants this line even if it is overwritten by the commandline"
-    $lines += "imageFile=products.zip"
+    if (Test-Path -Path ${scriptLocation} -PathType Leaf) {
+      Debug-WmUifwLogI "Image creation script already exists: $scriptLocation"
+      # Potential increment: force overwwrite
+    }
+    else {
+      $pl = Get-ProductListForTemplate "${TemplateId}"
+      $su = Get-DownloadServerUrlForTemplate "${TemplateId}"
+      $lines = @()
+      $lines += "# Generated"
+      $lines += "InstallProducts=$pl"
+      $lines += "ServerURL=$su"
+      $lines += "imagePlatform=W64"
+      $lines += "InstallLocProducts="
+      $lines += "# Workaround; installer wants this line even if it is overwritten by the commandline"
+      $lines += "imageFile=products.zip"
     
+      ${lines} | Out-File -FilePath $scriptLocation
+    }
 
-    ${lines} | Sort-Object | Out-File -FilePath $scriptLocation
+    $cmd = "${InstallerBinary} -console -scriptErrorInteract no -debugLvl verbose "
+    $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptLocation"" -writeImage ""${zipLocation}"" -user ""${UserName}"" -pass "
+
+    Debug-WmUifwLogI "Executing the following image creation command:"
+    Debug-WmUifwLogI "$cmd ***"
+    $cmd += """${UserPassword}"""
+    Invoke-AuditedCommand "$cmd" "CreateProductsZip"
   }
-
-  $cmd = "${InstallerBinary} -console -scriptErrorInteract no -debugLvl verbose "
-  $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptLocation"" -writeImage ""${zipLocation}"" -user ""${UserName}"" -pass "
-
-  Debug-WmUifwLogI "Executing the following image creation command: \n $cmd ***"
-  $cmd += """${UserPassword}"""
-  Invoke-AuditedCommand "$cmd" "CreateProductsZip"
 }
 
+function New-BootstrapUpdMgr {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${BoostrapUpdateManagerBinary},
+    [Parameter(Mandatory = $false)]
+    [string]${UpdMgrHome} = "c:\webMethodsUpdateManager",
+    [Parameter(Mandatory = $false)]
+    [string]${OnlineMode} = $true,
+    [Parameter(Mandatory = $false)]
+    [string]${ImageFile} = "N/A" # ImageFile mandatory if bootstrapping offline
+  )
+
+  if (Test-Path -Path "${UpdMgrHome}${pathSep}bin${pathSep}UpdateManagerCMD.bat" -PathType Leaf) {
+    Debug-WmUifwLogw "Installation already exists, nothing to do" 
+  }
+  else {
+    if (-Not (Test-Path ${BoostrapUpdateManagerBinary} -PathType Leaf)) {
+      Debug-WmUifwLogE "Bootstrap binary does not exist: ${BoostrapUpdateManagerBinary}"
+      return 1
+    }
+    $cmd = "${BoostrapUpdateManagerBinary} --accept-license -d ""${UpdMgrHome}"""
+    if (${OnlineMode}) {
+      $cmd += "-i ""${ImageFile}"""
+    }
+  }
+  Invoke-AuditedCommand "$cmd" "BootstrapUpdMgr"
+}
 
 function Get-InventoryForTemplate {
   param (
@@ -645,6 +674,88 @@ function Get-InventoryForTemplate {
     $document | ConvertTo-Json -depth 100 | Out-File -Encoding "ascii" "${OutFile}"
   }
 }
+
+function Get-FixesImageForTemplate {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${TemplateId},
+    [Parameter(Mandatory = $true)]
+    [string]${BaseFolder},
+    [Parameter(Mandatory = $true)]
+    [string]${UpdMgrHome},
+    [Parameter(Mandatory = $false)]
+    [string]${PlatformString} = "W64",
+    [Parameter(Mandatory = $true)]
+    [string]${UserName},
+    [Parameter(Mandatory = $true)]
+    [string]${UserPassword}
+  )
+
+  if (-Not (Test-Path -Path "${UpdMgrHome}${pathSep}bin${pathSep}UpdateManagerCMD.bat" -PathType Leaf)) {
+    Debug-WmUifwLogE "Incorrect Update Manager path: ${UpdMgrHome}"
+    return 1
+  }
+
+  if (-Not (Test-Path -Path ${BaseFolder} -PathType Container)) {
+    Debug-WmUifwLogW "Folder ${BaseFolder} does not exist, creating now..."
+    New-Item -Path ${BaseFolder} -ItemType Container
+  }
+  ${currentDay} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%Y-%m-%d')"
+  ${templateDestinationfolder} = "${BaseFolder}\fixes\${currentDay}\${TemplateId}".Replace('\', ${pathSep})
+  if (-Not (Test-Path -Path ${templateDestinationfolder} -PathType Container)) {
+    Debug-WmUifwLogW "Folder ${templateDestinationfolder} does not exist, creating now..."
+    New-Item -Path ${templateDestinationfolder} -ItemType Container
+  }
+
+  ${zipLocation} = "$templateDestinationfolder${pathSep}fixes.zip"
+  if (Test-Path -Path "${zipLocation}" -PathType Leaf) {
+    Debug-WmUifwLogI "Fixes image file already exists: ${zipLocation}"
+  }
+  else {
+    ${inventoryLocation} = "${templateDestinationfolder}${pathSep}inventory.json"
+    if (Test-Path -Path "${inventoryLocation}" -PathType Leaf) {
+      Debug-WmUifwLogI "Inventory file ${inventoryLocation} already exists, continuing with this one"
+    }
+    else {
+      Get-InventoryForTemplate -TemplateId ${TemplateId} -OutFile "${inventoryLocation}"
+    }
+    if (Test-Path -Path "${inventoryLocation}" -PathType Leaf) {
+      Debug-WmUifwLogI "Inventory file ${inventoryLocation} already exists, continuing with this one"
+    }
+    else {
+      Get-InventoryForTemplate -TemplateId ${TemplateId} -OutFile "${inventoryLocation}"
+    }
+
+    ${scriptLocation} = "${templateDestinationfolder}${pathSep}create.fixes.image.wmscript"
+
+    $lines = @()
+    $lines += "# Generated"
+    $lines += "scriptConfirm=N"
+    $lines += "installSP=N"
+    $lines += "action=Create or add fixes to fix image"
+    $lines += "selectedFixes=spro:all"
+    # $lines += "installDir=${inventoryLocation}"
+    # $lines += "imagePlatform=${PlatformString}"
+    $lines += "createEmpowerImage=C"
+  
+    ${lines} | Out-File -FilePath ${scriptLocation}
+
+    Push-Location .
+    Set-Location ${UpdMgrHome}${pathSep}bin${pathSep}
+    $cmd = "./UpdateManagerCMD.bat -selfUpdate false -readScript ""${scriptLocation}"""
+    $cmd += " -installDir ""${inventoryLocation}"""
+    $cmd += "-imagePlatform ${PlatformString}"
+    $cmd += " -createImage ""${zipLocation}"""
+    $cmd += "-empowerUser ""${UserName}"""
+    $cmd += " -empowerPass "
+    Debug-WmUifwLogI "Executing audited command:"
+    Debug-WmUifwLogI "$cmd ***"
+    $cmd += """${UserPassword}"""
+    Invoke-AuditedCommand "$cmd" "ComputeFixesImage"
+    Pop-Location
+  }
+}
+
 ############## Initialize Variables
 # This library is founded on a set of variables
 # The scripts are expected to use scoped variables

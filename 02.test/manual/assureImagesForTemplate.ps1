@@ -10,6 +10,9 @@ Debug-WmUifwLogI "Considering output base folder $folder"
 $installer = ${env:WMUSF_INSTALLER_BINARY} ?? (Read-Host "Where is the installer executable?")
 Debug-WmUifwLogI "Using Installer $installer"
 
+$updMgrHome = ${env:WMUSF_UPD_MGR_HOME} ?? (Read-Host "Where is the Update Manager Home (it must exist!)?")
+Debug-WmUifwLogI "Using Installer $installer"
+
 $user = ${env:WMUSF_CURRENT_DOWNLOAD_USER} ?? (Read-Host "User for download")
 Debug-WmUifwLogI "Considering download user $user"
 
@@ -18,6 +21,13 @@ $pwd = ${env:WMUSF_CURRENT_DOWNLOAD_PASSWORD} ?? (Read-UserSecret "User password
 Get-ProductsImageForTemplate `
   -TemplateId "$template" `
   -InstallerBinary "$installer" `
+  -BaseFolder "$folder" `
+  -UserName "$user" `
+  -UserPassword "$pwd"
+
+Get-FixesImageForTemplate `
+  -TemplateId "$template" `
+  -UpdMgrHome "$updMgrHome" `
   -BaseFolder "$folder" `
   -UserName "$user" `
   -UserPassword "$pwd"
