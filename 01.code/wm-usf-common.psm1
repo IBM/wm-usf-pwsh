@@ -120,6 +120,16 @@ function Debug-WmUifwLogD {
 ##### End Audit
 
 ########### Tools
+function Read-UserSecret() {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${Label}
+  )
+  #TODO: enforce with double read
+  $x = Read-Host -MaskInput ${Label}
+  $x
+}
+
 function Invoke-EnvironmentSubstitution() {
   param([Parameter(ValueFromPipeline)][string]$InputObject)
 
@@ -496,6 +506,145 @@ function Get-CheckSumsForAllFilesInFolder {
   ${checksums2} | Sort-Object | Out-File -FilePath ${OutFileNamesSorted}
 }
 
+function Get-DownloadServerUrlForTemplate {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${TemplateId}
+  )
+  # Note: this is subject to change according to client geolocation and to evolution and transition to the new owner
+  switch -Regex (${TemplateId}) {
+    ".*\\1011\\.*" {
+      return 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi'
+    }
+    default {
+      return 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
+    }
+  }
+}
+
+function Get-ProductsImageForTemplate() {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${TemplateId},
+    [Parameter(Mandatory = $true)]
+    [string]${BaseFolder},
+    [Parameter(Mandatory = $true)]
+    [string]${InstallerBinary},
+    [Parameter(Mandatory = $true)]
+    [string]${UserName},
+    [Parameter(Mandatory = $true)]
+    [string]${UserPassword}
+  )
+  $pl = Get-ProductListForTemplate ${TemplateId}
+  if ($pl.Length -le 5) {
+    Debug-WmUifwLogE "Wrong product list: $pl"
+    return 1
+  }
+
+  if (-Not (Test-Path -Path ${BaseFolder} -PathType Container)) {
+    Debug-WmUifwLogW "Folder ${BaseFolder} does not exist, creating now..."
+    New-Item -Path ${BaseFolder} -ItemType Container
+  }
+  $templateDesinationfolder = "${BaseFolder}\products\${TemplateId}".Replace('\', ${pathSep})
+  if (-Not (Test-Path -Path ${templateDesinationfolder} -PathType Container)) {
+    Debug-WmUifwLogW "Folder ${templateDesinationfolder} does not exist, creating now..."
+    New-Item -Path ${templateDesinationfolder} -ItemType Container
+  }
+  ${zipLocation} = "$templateDesinationfolder${pathSep}products.zip"
+  $scriptLocation = "$templateDesinationfolder${pathSep}image.creation.wmscript"
+  $debugFile = "$templateDesinationfolder${pathSep}image.creation.debug.log"
+
+  if (Test-Path -Path ${zipLocation} -PathType Leaf) {
+    Debug-WmUifwLogI "Products zip file already exists, nothing to do"
+    # Potential increment: force overwwrite
+  }
+  else {}
+  if (Test-Path -Path ${scriptLocation} -PathType Leaf) {
+    Debug-WmUifwLogI "Image creation script already exists: $scriptLocation"
+    # Potential increment: force overwwrite
+  }
+  else {
+    $pl = Get-ProductListForTemplate "${TemplateId}"
+    $su = Get-DownloadServerUrlForTemplate "${TemplateId}"
+    $lines = @()
+    $lines += "InstallProducts=$pl"
+    $lines += "ServerURL=$su"
+    $lines += "imagePlatform=W64"
+    $lines += "InstallLocProducts="
+    $lines += "# Workaround; installer wants this line even if it is overwritten by the commandline"
+    $lines += "imageFile=products.zip"
+    
+
+    ${lines} | Sort-Object | Out-File -FilePath $scriptLocation
+  }
+
+  $cmd = "${InstallerBinary} -console -scriptErrorInteract no -debugLvl verbose "
+  $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptLocation"" -writeImage ""${zipLocation}"" -user ""${UserName}"" -pass "
+
+  Debug-WmUifwLogI "Executing the following image creation command: \n $cmd ***"
+  $cmd += """${UserPassword}"""
+  Invoke-AuditedCommand "$cmd" "CreateProductsZip"
+}
+
+
+function Get-InventoryForTemplate {
+  param (
+    [Parameter(Mandatory = $true)]
+    [string]${TemplateId},
+    [Parameter(Mandatory = $false)]
+    [string]${OutFile} = "",
+    [Parameter(Mandatory = $false)]
+    [string]${sumPlatformString} = "W64",
+    [Parameter(Mandatory = $false)]
+    [string]${updateManagerVersion} = "11.0.0.0040-0819",
+    [Parameter(Mandatory = $false)]
+    [string]${SumPlatformGroupString} = """WIN-ANY"""
+  )
+
+  $lProductsCsv = Get-ProductListForTemplate ${TemplateId}
+  if ($lProductsCsv.Length -le 5) {
+    Debug-WmUifwLogE "Wrong product list: $lProductsCsv"
+    return 1
+  }
+
+  if (${Outfile} -eq "") {
+    ${ts} = Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S'
+    ${f} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}\trace\local\${ts}".Replace('\', ${pathSep})
+    New-Item ${f} -ItemType Container
+    ${Outfile} = "${f}${pathSep}inventory.json"
+  }
+
+  ${productsHash} = @{} #using a hash for unique values
+
+  foreach ($productString in ${lProductsCsv}.split(',')) {
+    $productCode = $productString.split('/')[-1]
+    $verArray = $productString.split('/')[2].split('_')[-1].split('.')
+    $productVersion = $verArray[0] + '.' + $verArray[1] + '.' + $verArray[2]
+    ${productsHash}["$productCode"] = $productVersion
+  }
+  if (${productsHash}.Count -gt 0) {
+    ${installedProducts} = @()
+    foreach (${productId} in ${productsHash}.Keys) {
+      ${installedProducts} += (@{
+          "productId"   = ${productId}
+          "displayName" = ${productId}
+          "version"     = ${productsHash}["${productId}"]
+        })
+    }
+    $document = @{
+      "installedFixes"          = @()
+      "installedSupportPatches" = @()
+      "envVariables"            = @{
+        "platformGroup"        = @(${SumPlatformGroupString})
+        "UpdateManagerVersion" = "${updateManagerVersion}"
+        "Hostname"             = "localhost"
+        "platform"             = "$sumPlatformString"
+      }
+      "installedProducts"       = $installedProducts
+    }
+    $document | ConvertTo-Json -depth 100 | Out-File -Encoding "ascii" "${OutFile}"
+  }
+}
 ############## Initialize Variables
 # This library is founded on a set of variables
 # The scripts are expected to use scoped variables

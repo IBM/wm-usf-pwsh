@@ -1,5 +1,5 @@
 Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force || exit 1
-${pesVersion} = ${env:PESTER_VERSION} ?? "5.6.1"
+${pesVersion} = ${env:PESTER_VERSION} ?? "5.7.1"
 
 function checkPester() {
   $pesterModules = @( Get-Module -Name "Pester" -ErrorAction "SilentlyContinue" );
