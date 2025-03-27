@@ -251,7 +251,7 @@ function Get-NewTempDir() {
     # log message
     [Parameter(Mandatory = $false)]
     [string]${tmpBaseDir} = `
-    $(Get-Variable -Name 'TempSessionDir' -Scope Script) ?? ${sysTemp}
+    $(Get-Variable -Name 'TempSessionDir' -Scope Script).Value ?? ${sysTemp}
   )
 
   if ( ${tmpBaseDir}.Substring(${tmpBaseDir}.Length - 1, 1) -ne ${pathSep} ) {
@@ -608,12 +608,30 @@ function New-BootstrapUpdMgr {
       Debug-WmUifwLogE "Bootstrap binary does not exist: ${BoostrapUpdateManagerBinary}"
       return 1
     }
-    $cmd = "${BoostrapUpdateManagerBinary} --accept-license -d ""${UpdMgrHome}"""
-    if (${OnlineMode}) {
-      $cmd += "-i ""${ImageFile}"""
+    # Workaround for Windows: unzip and run the bat file manually
+    # Warning: this is not documented and subject to change
+    ${tempFolder} = Get-NewTempDir
+    ${tempFolder} += "${pathSep}UpdMgrInstallation"
+    Debug-WmUifwLogI "Using temporary folder ${tempFolder}"
+    New-Item -Path ${tempFolder} -ItemType Container
+    Expand-Archive -Path "${BoostrapUpdateManagerBinary}" -DestinationPath "${tempFolder}"
+    if (-Not (Test-Path "${tempFolder}${pathSep}sum-setup.bat")) {
+      Debug-WmUifwLogE "Wrong archive, it does not contain the file sum-setup.bat"
     }
+    else {
+      Push-Location .
+      Set-Location -Path "${tempFolder}" || return 2
+      $cmd = ".${pathSep}sum-setup.bat --accept-license -d ""${UpdMgrHome}"""
+      if (${OnlineMode} -ne $true) {
+        $cmd += "-i ""${ImageFile}"""
+      }
+      Debug-WmUifwLogI "Bootstrapping UpdateManager with the following command"
+      Debug-WmUifwLogI "$cmd"
+      Invoke-AuditedCommand "$cmd" "BootstrapUpdMgr"
+      Pop-Location
+    }
+    Remove-Item "${tempFolder}" -Force -Recurse
   }
-  Invoke-AuditedCommand "$cmd" "BootstrapUpdMgr"
 }
 
 function Get-InventoryForTemplate {
