@@ -19,5 +19,9 @@
             "other": "off"
         }
     },
-    "workbench.colorTheme": "Violet Flask"
+    "workbench.colorTheme": "Violet Flask",
+    "cSpell.words": [
+        "configurator",
+        "WMSCRIPT"
+    ]
 }

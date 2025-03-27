@@ -774,6 +774,22 @@ function Get-FixesImageForTemplate {
   }
 }
 
+function Set-DefaultGlobalVariable {
+  param(
+    [Parameter(mandatory = $true)]
+    [string] ${WMUSF_VariableName},
+    [Parameter(mandatory = $true)]
+    [string] ${WMUSF_DefaultValue}
+  )
+  if ($null -eq (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -ErrorAction SilentlyContinue)) {
+    Debug-WmUifwLogI "Setting default variable value for ${WMUSF_VariableName} to ${WMUSF_DefaultValue}"
+    Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${WMUSF_DefaultValue}" 
+  }
+}
+function Set-DefaultWMSCRIPT_Vars {
+  # AdminPassword
+  Set-DefaultGlobalVariable "WMSCRIPT_adminPassword" "Manage01"
+}
 ############## Initialize Variables
 # This library is founded on a set of variables
 # The scripts are expected to use scoped variables

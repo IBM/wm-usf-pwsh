@@ -41,6 +41,19 @@ Describe "Templates" {
     It 'Generates inventory file in the default location' {
       Get-InventoryForTemplate "DBC\1011\full"
     }
+
+    It 'Checks templates default values' {
+      Set-DefaultWMSCRIPT_Vars
+      (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "Manage01"
+      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=Manage01'
+    }
+
+    It 'Checks templates default values not overwriding provided values' {
+      Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "AnotherPassword"
+      Set-DefaultWMSCRIPT_Vars
+      (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "AnotherPassword"
+      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=AnotherPassword'
+    }
   }
 
   Context 'Product Lists' {
@@ -60,4 +73,5 @@ Describe "Templates" {
       Get-DownloadServerUrlForTemplate "anything" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
     }
   }
+
 }
