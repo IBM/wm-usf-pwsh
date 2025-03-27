@@ -37,6 +37,13 @@ catch {
 }
 
 Describe "Templates" {
+  Context 'Fundamentals' {
+    It 'Checks base folder resolution' {
+      Get-TemplateBaseFolder "a" | Should -Be 1
+      Get-TemplateBaseFolder "DBC\1011" | Should -Be 2
+      Get-TemplateBaseFolder "DBC\1011\full" | Should -Match "DBC.1011.full"
+    }
+  }
   Context 'Inventory Files' {
     It 'Generates inventory file in the default location' {
       Get-InventoryForTemplate "DBC\1011\full"

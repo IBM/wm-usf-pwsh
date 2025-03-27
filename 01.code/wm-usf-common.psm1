@@ -231,11 +231,7 @@ function Get-ProductListForTemplate() {
     [string]${TemplateId}
   )
 
-  ${templateFolder} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}".Replace('\', ${pathSep})
-  if ( -Not (Test-Path -Path ${templateFolder} -PathType Container )) {
-    Debug-WmUifwLogE "Template ${TemplateId} does not exist"
-    return 1
-  }
+  ${templateFolder} = Get-TemplateBaseFolder "${TemplateId}"
 
   ${plFile} = "${templateFolder}${PathSep}ProductsList.txt"
   if ( -Not (Test-Path -Path ${plFile} -PathType Leaf )) {
@@ -787,9 +783,64 @@ function Set-DefaultGlobalVariable {
   }
 }
 function Set-DefaultWMSCRIPT_Vars {
-  # AdminPassword
+  # Installation Script Related Parameters
   Set-DefaultGlobalVariable "WMSCRIPT_adminPassword" "Manage01"
+  Set-DefaultGlobalVariable "WMSCRIPT_HostName" "localhost"
+  Set-DefaultGlobalVariable "WMSCRIPT_IntegrationServerdiagnosticPort" "9999"
+  Set-DefaultGlobalVariable "WMSCRIPT_IntegrationServerPort" "5555"
+  Set-DefaultGlobalVariable "WMSCRIPT_IntegrationServersecurePort" "5543"
+  Set-DefaultGlobalVariable "WMSCRIPT_mwsPortField" "8585"
+  Set-DefaultGlobalVariable "WMSCRIPT_SPMHttpPort" "8092"
+  Set-DefaultGlobalVariable "WMSCRIPT_SPMHttpsPort" "8093"
+  Set-DefaultGlobalVariable "WMSCRIPT_StartMenuFolder" "webMethods"
+
+  Set-DefaultGlobalVariable "WMUSF_UPD_MGR_HOME" "C:\webMethodsUpdateManager"
 }
+
+function Install-FixesFromImage {
+
+}
+
+function Get-TemplateBaseFolder {
+  param(
+    [Parameter(mandatory = $true)]
+    [string] ${TemplateId}
+  )
+  ${templateFolder} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}".Replace('\', ${pathSep})
+  if ( -Not (Test-Path -Path ${templateFolder} -PathType Container )) {
+    Debug-WmUifwLogE "Template ${TemplateId} does not exist"
+    return 1
+  }
+  if ( -Not (Test-Path -Path ${templateFolder}${pathSep}ProductsList.txt -PathType Leaf)) {
+    Debug-WmUifwLogE "Folder ${templateFolder} exists, but it is not a template!"
+    return 2
+  }
+  return ${templateFolder}
+}
+
+function New-InstallationFromTemplate {
+  param(
+    [Parameter(mandatory = $true)]
+    [string] ${InstallHome},
+    [Parameter(mandatory = $true)]
+    [string] ${TemplateId},
+    [Parameter(mandatory = $true)]
+    [string] ${InstallerBinaryFile}
+  )
+  if (Test-Path -Path "${InstallHome}${pathSep}install" -PathType Container) {
+    Debug-WmUifwLogW "Installation folder ${InstallHome} not empty, this may be an overinstall!"
+  }
+
+  ${templateFolder} = Get-TemplateBaseFolder "${TemplateId}"
+
+  ${plFile} = "${templateFolder}${PathSep}ProductsList.txt"
+  if ( -Not (Test-Path -Path ${plFile} -PathType Leaf )) {
+    Debug-WmUifwLogE "File ${plFile} does not exist"
+    return 2
+  }
+
+}
+
 ############## Initialize Variables
 # This library is founded on a set of variables
 # The scripts are expected to use scoped variables
