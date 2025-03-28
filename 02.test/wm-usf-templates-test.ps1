@@ -45,7 +45,7 @@ Describe "Templates" {
     }
   }
   Context 'Inventory Files' {
-    It 'Generates inventory file in the default location' {
+    It 'Generates inventory file in the temp location' {
       Get-InventoryForTemplate "DBC\1011\full"
     }
 
@@ -55,11 +55,16 @@ Describe "Templates" {
       'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=Manage01'
     }
 
-    It 'Checks templates default values not overwriding provided values' {
+    It 'Checks templates default values not overwriding provided values part 1' {
       Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "AnotherPassword"
       Set-DefaultWMSCRIPT_Vars
       (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "AnotherPassword"
-      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=AnotherPassword'
+    }
+
+    It 'Checks templates default values not overwriding provided values part 2' {
+      Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "YetAnotherPassword"
+      Set-DefaultWMSCRIPT_Vars
+      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=YetAnotherPassword'
     }
   }
 

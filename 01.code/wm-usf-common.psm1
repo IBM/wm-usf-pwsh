@@ -236,7 +236,7 @@ function Get-ProductListForTemplate() {
   ${plFile} = "${templateFolder}${PathSep}ProductsList.txt"
   if ( -Not (Test-Path -Path ${plFile} -PathType Leaf )) {
     Debug-WmUifwLogE "File ${plFile} does not exist"
-    return 2
+    return 1
   }
 
   return ( Get-Content ${plFile} ) -join ","
@@ -427,7 +427,7 @@ function Resolve-DefaultUpdateManagerBootstrap() {
   param (
     # where to save the file 
     [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
+    [string]${fullOutputDirectoryPath} = (Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') ,
 
     [Parameter(Mandatory = $false)]
     [string]${fileName} = ${defaultWmumBootstrapFileName}
@@ -586,16 +586,25 @@ function Get-ProductsImageForTemplate() {
 
 function New-BootstrapUpdMgr {
   param (
-    [Parameter(Mandatory = $true)]
-    [string]${BoostrapUpdateManagerBinary},
     [Parameter(Mandatory = $false)]
-    [string]${UpdMgrHome} = "c:\webMethodsUpdateManager",
+    [string]${BoostrapUpdateManagerBinary} = (Resolve-GlobalScriptVar 'WMUSF_BOOTSTRAP_UPD_MGR_BIN') ,
+    [Parameter(Mandatory = $false)]
+    [string]${UpdMgrHome} = "N/A",
     [Parameter(Mandatory = $false)]
     [string]${OnlineMode} = $true,
     [Parameter(Mandatory = $false)]
     [string]${ImageFile} = "N/A" # ImageFile mandatory if bootstrapping offline
   )
 
+  if ("N/A" -eq ${UpdMgrHome}) {
+    ${UpdMgrHome} = ('${WMUSF_UPD_MGR_HOME}' | Invoke-EnvironmentSubstitution)
+    Debug-WmUifwLogI "Resolved Update Manager Home from global: ${UpdMgrHome}"
+  }
+
+  if ("" -eq "${UpdMgrHome}") {
+    Debug-WmUifwLogE "Framework error!"
+    return 9
+  } 
   if (Test-Path -Path "${UpdMgrHome}${pathSep}bin${pathSep}UpdateManagerCMD.bat" -PathType Leaf) {
     Debug-WmUifwLogw "Installation already exists, nothing to do" 
   }
@@ -604,6 +613,7 @@ function New-BootstrapUpdMgr {
       Debug-WmUifwLogE "Bootstrap binary does not exist: ${BoostrapUpdateManagerBinary}"
       return 1
     }
+
     # Workaround for Windows: unzip and run the bat file manually
     # Warning: this is not documented and subject to change
     ${tempFolder} = Get-NewTempDir
@@ -652,7 +662,8 @@ function Get-InventoryForTemplate {
 
   if (${Outfile} -eq "") {
     ${ts} = Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S'
-    ${f} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}\trace\local\${ts}".Replace('\', ${pathSep})
+    ${tempFolder} = Get-NewTempDir
+    ${f} = "${tempFolder}\${TemplateId}\trace\local\${ts}".Replace('\', ${pathSep})
     New-Item ${f} -ItemType Container
     ${Outfile} = "${f}${pathSep}inventory.json"
   }
@@ -777,13 +788,27 @@ function Set-DefaultGlobalVariable {
     [Parameter(mandatory = $true)]
     [string] ${WMUSF_DefaultValue}
   )
-  if ($null -eq (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -ErrorAction SilentlyContinue)) {
-    Debug-WmUifwLogI "Setting default variable value for ${WMUSF_VariableName} to ${WMUSF_DefaultValue}"
-    Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${WMUSF_DefaultValue}" 
+  ${s} = '${env:' + "${WMUSF_VariableName}" + "}"
+  ${a} = ${s} | Invoke-EnvironmentSubstitution
+  # Debug-WmUifwLogI ("a=--${a}--" + "${a}".Length)
+  if ( 0 -eq "${a}".Length) {
+    $v2 = (Get-Variable -Name "${WMUSF_VariableName}" -Scope Global -ErrorAction SilentlyContinue).Value
+    if ( 0 -eq "${v2}".Length) {
+      Debug-WmUifwLogD "Setting default variable value for ${WMUSF_VariableName} to ${WMUSF_DefaultValue}"
+      Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${WMUSF_DefaultValue}" 
+    }
+    else {
+      Debug-WmUifwLogD "Variable ${WMUSF_VariableName} already set to ${WMUSF_DefaultValue} via global scope"
+    }
+  }
+  else {
+    Debug-WmUifwLogD "Variable ${WMUSF_VariableName} already set to ${a} via environment, setting global value now..."
+    Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${a}"
   }
 }
 function Set-DefaultWMSCRIPT_Vars {
   # Installation Script Related Parameters
+  # Call this before using installer scripts
   Set-DefaultGlobalVariable "WMSCRIPT_adminPassword" "Manage01"
   Set-DefaultGlobalVariable "WMSCRIPT_HostName" "localhost"
   Set-DefaultGlobalVariable "WMSCRIPT_IntegrationServerdiagnosticPort" "9999"
@@ -793,8 +818,28 @@ function Set-DefaultWMSCRIPT_Vars {
   Set-DefaultGlobalVariable "WMSCRIPT_SPMHttpPort" "8092"
   Set-DefaultGlobalVariable "WMSCRIPT_SPMHttpsPort" "8093"
   Set-DefaultGlobalVariable "WMSCRIPT_StartMenuFolder" "webMethods"
+}
 
+function Set-DefaultWMUSF_Vars {
+  # Framework related
   Set-DefaultGlobalVariable "WMUSF_UPD_MGR_HOME" "C:\webMethodsUpdateManager"
+  Set-DefaultGlobalVariable "WMUSF_ARTIFACTS_CACHE_HOME" "C:\WMUSF\Artifacts"
+  Set-DefaultGlobalVariable "WMUSF_BOOTSTRAP_UPD_MGR_BIN" `
+  ((Resolve-GlobalScriptVar "WMUSF_ARTIFACTS_CACHE_HOME") + "\" + ${defaultWmumBootstrapFileName})
+}
+
+function Resolve-GlobalScriptVar {
+  param(
+    [Parameter(mandatory = $true)]
+    [string] ${VariableName}
+  )
+  ${a} = '${env:' + ${VariableName} + '}'
+  ${v} = $a | Invoke-EnvironmentSubstitution
+  if ("" -eq $v ) {
+    ${a} = '${' + ${VariableName} + '}'
+    ${v} = $a | Invoke-EnvironmentSubstitution
+  }
+  return ${v}
 }
 
 function Install-FixesFromImage {
@@ -825,20 +870,54 @@ function New-InstallationFromTemplate {
     [Parameter(mandatory = $true)]
     [string] ${TemplateId},
     [Parameter(mandatory = $true)]
-    [string] ${InstallerBinaryFile}
+    [string] ${InstallerBinaryFile},
+    [Parameter(mandatory = $true)]
+    [string] ${Imagefile}
   )
   if (Test-Path -Path "${InstallHome}${pathSep}install" -PathType Container) {
     Debug-WmUifwLogW "Installation folder ${InstallHome} not empty, this may be an overinstall!"
   }
 
   ${templateFolder} = Get-TemplateBaseFolder "${TemplateId}"
+  if ( "{templateFolder}".Length -le 6 ) {
+    Debug-WmUifwLogD "Error (code {templateFolder}) while getting template folder for template ${TemplateId}"
+    return 1
+  }
 
-  ${plFile} = "${templateFolder}${PathSep}ProductsList.txt"
-  if ( -Not (Test-Path -Path ${plFile} -PathType Leaf )) {
-    Debug-WmUifwLogE "File ${plFile} does not exist"
+  if ( -Not (Test-Path -Path "${templateFolder}${pathSep}install.wmscript" -PathType Leaf )) {
+    Debug-WmUifwLogE "The template is not installable!"
     return 2
   }
 
+  if ( -Not (Test-Path -Path ${InstallerBinaryFile} -PathType Leaf )) {
+    Debug-WmUifwLogE "Installer binary file ${InstallerBinaryFile} does not exist"
+    return 3
+  }
+
+  ${tempFolder} = Get-NewTempDir
+  Debug-WmUifwLogI "Using temporary folder ${tempFolder} for installation"
+
+  New-Item -Path "${tempFolder}" -ItemType Container
+
+  Set-DefaultWMSCRIPT_Vars
+
+  $sf = Get-Content ${templateFolder}${pathSep}install.wmscript -Raw | Invoke-EnvironmentSubstitution
+  $sf > "${tempFolder}${pathSep}install.wmscript"
+
+  $pl = Get-ProductListForTemplate "${TemplateId}"
+
+  Add-content "${tempFolder}${pathSep}install.wmscript" -value "ProductList=$pl"
+
+  $cmd = "${InstallerBinaryFile} -console -scriptErrorInteract no -debugLvl verbose"
+  $cmd += " -debugFile ""${tempFolder}${pathSep}install.log"""
+  $cmd += " -installDir ""${InstallHome}"""
+  $cmd += " -readScript ""${tempFolder}${pathSep}install.wmscript"""
+  $cmd += " -readImage ""${Imagefile}"""
+
+  Debug-WmUifwLogI "Command to execute is"
+  Debug-WmUifwLogI "$cmd"
+
+  Invoke-AuditedCommand "$cmd" "Install"
 }
 
 ############## Initialize Variables
@@ -858,6 +937,8 @@ function Resolve-WmusfCommonModuleLocals() {
   Set-LogSessionDir -NewSessionDir ${logSessionDir}
 
   Resolve-WmusfDirectory -directory ${tempFolder} -alsoLog $true
+
+  Set-DefaultWMUSF_Vars
 
   Debug-WmUifwLogI "Module wm-usf-common.psm1 initialized"
   Debug-WmUifwLogD "AuditBaseDir: ${auditDir}"
