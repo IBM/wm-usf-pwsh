@@ -4,7 +4,8 @@
 
 :: log of our scripts
 SET l=c:\y\sandbox\startup\dosSandboxStartup.log
-SET pwsh_msi_file=c:\y\sandbox\startup\cache\pwsh_install.msi
+
+if exist c:\s\setStartupTemplate.bat call c:\s\setStartupTemplate.bat
 
 CALL c:\s\setEnv.bat
 
@@ -34,12 +35,12 @@ subst Y: c:\Y
 echo %TIME% - 01.s - Preparing folders ... >> %l%
 
 start cmd /c "echo Installing necessary modules, this may take a while... & timeout /T 50"
-if exist %pwsh_msi_file% GOTO INSTALL_PWSH
+if exist %PU_FILE% GOTO INSTALL_PWSH
 
 echo %TIME% - 01.s - Downloading powershell msi installer from %pu% ... >> %l%
 :: Test - is curl launched too early?
 timeout /T 10
-curl -o %pwsh_msi_file% -L %pu% -v >> %l% 2>>%l%.err
+curl -o %PU_FILE% -L %pu% -v >> %l% 2>>%l%.err
 echo %TIME% - 01.s - curl download result is: %rd% >> %l%
 SET rd=%ERRORLEVEL%
 if "%rd%"=="0" GOTO INSTALL_PWSH
@@ -47,7 +48,7 @@ GOTO ERR
 
 :INSTALL_PWSH
 echo %TIME% - 01.s - Installing pwsh ... >> %l%
-msiexec.exe /I %pwsh_msi_file% /passive /QB /L*V ^
+msiexec.exe /I %PU_FILE% /passive /QB /L*V ^
   Y:\sandbox\msilog.log MYPROPERTY=1 ^
   >> %l%
 

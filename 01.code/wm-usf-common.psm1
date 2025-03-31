@@ -174,7 +174,14 @@ function Invoke-AuditedCommand() {
 
   Debug-WmUifwLogD "${fullCmd}"
 
-  Invoke-Expression "${fullCmd}"
+  try {
+    Invoke-Expression "${fullCmd}"
+  }
+  catch {
+    Debug-WmUifwLogE "Error caught while executing audited command with tag ${tag}"
+    $_ | Out-File "${baseOutputFileName}.pwsh.err.txt"
+    $_
+  }
   ${exitCode} = Get-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt"
 
   Debug-WmUifwLogD "Command exited with code ${exitCode}"
@@ -409,7 +416,7 @@ function Resolve-DefaultInstaller() {
   param (
     # where to save the file 
     [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
+    [string]${fullOutputDirectoryPath} = (Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME'),
 
     [Parameter(Mandatory = $false)]
     [string]${fileName} = ${defaultInstallerFileName}
@@ -522,10 +529,14 @@ function Get-ProductsImageForTemplate() {
   param (
     [Parameter(Mandatory = $true)]
     [string]${TemplateId},
-    [Parameter(Mandatory = $true)]
-    [string]${BaseFolder},
-    [Parameter(Mandatory = $true)]
-    [string]${InstallerBinary},
+    [Parameter(Mandatory = $false)]
+    [string]${BaseFolder} = `
+    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + 'images') `
+      ,
+    [Parameter(Mandatory = $false)]
+    [string]${InstallerBinary} = `
+    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + ${defaultInstallerFileName}) `
+      ,
     [Parameter(Mandatory = $true)]
     [string]${UserName},
     [Parameter(Mandatory = $true)]
@@ -704,10 +715,12 @@ function Get-FixesImageForTemplate {
   param (
     [Parameter(Mandatory = $true)]
     [string]${TemplateId},
-    [Parameter(Mandatory = $true)]
-    [string]${BaseFolder},
-    [Parameter(Mandatory = $true)]
-    [string]${UpdMgrHome},
+    [Parameter(Mandatory = $false)]
+    [string]${BaseFolder} = `
+    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + 'images') `
+      ,
+    [Parameter(Mandatory = $false)]
+    [string]${UpdMgrHome} = (Resolve-GlobalScriptVar "WMUSF_UPD_MGR_HOME"),
     [Parameter(Mandatory = $false)]
     [string]${PlatformString} = "W64",
     [Parameter(Mandatory = $true)]
@@ -822,10 +835,16 @@ function Set-DefaultWMSCRIPT_Vars {
 
 function Set-DefaultWMUSF_Vars {
   # Framework related
-  Set-DefaultGlobalVariable "WMUSF_UPD_MGR_HOME" "C:\webMethodsUpdateManager"
-  Set-DefaultGlobalVariable "WMUSF_ARTIFACTS_CACHE_HOME" "C:\WMUSF\Artifacts"
+  if ( ${posixCmd} ) {
+    Set-DefaultGlobalVariable "WMUSF_UPD_MGR_HOME" "/opt/wmUpdMgr11"
+    Set-DefaultGlobalVariable "WMUSF_ARTIFACTS_CACHE_HOME" "/tmp/Artifacts"
+  }
+  else {
+    Set-DefaultGlobalVariable "WMUSF_UPD_MGR_HOME" "C:\webMethodsUpdateManager"
+    Set-DefaultGlobalVariable "WMUSF_ARTIFACTS_CACHE_HOME" "C:\WMUSF\Artifacts"
+  }
   Set-DefaultGlobalVariable "WMUSF_BOOTSTRAP_UPD_MGR_BIN" `
-  ((Resolve-GlobalScriptVar "WMUSF_ARTIFACTS_CACHE_HOME") + "\" + ${defaultWmumBootstrapFileName})
+  ((Resolve-GlobalScriptVar "WMUSF_ARTIFACTS_CACHE_HOME") + ${pathSep} + ${defaultWmumBootstrapFileName})
 }
 
 function Resolve-GlobalScriptVar {
@@ -857,7 +876,7 @@ function Get-TemplateBaseFolder {
     return 1
   }
   if ( -Not (Test-Path -Path ${templateFolder}${pathSep}ProductsList.txt -PathType Leaf)) {
-    Debug-WmUifwLogE "Folder ${templateFolder} exists, but it is not a template!"
+    Debug-WmUifwLogE "Folder --${templateFolder}-- exists, but it is not a template!"
     return 2
   }
   return ${templateFolder}
@@ -869,10 +888,16 @@ function New-InstallationFromTemplate {
     [string] ${InstallHome},
     [Parameter(mandatory = $true)]
     [string] ${TemplateId},
+    [Parameter(Mandatory = $false)]
+    [string]${InstallerBinaryFile} = `
+    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + ${defaultInstallerFileName}) `
+      ,
     [Parameter(mandatory = $true)]
-    [string] ${InstallerBinaryFile},
-    [Parameter(mandatory = $true)]
-    [string] ${Imagefile}
+    [string] ${ProductsImagefile},
+    [Parameter(Mandatory = $false)]
+    [string]${UpdMgrHome} = (Resolve-GlobalScriptVar "WMUSF_UPD_MGR_HOME"),
+    [Parameter(mandatory = $false)]
+    [string] ${FixesImagefile} = "N/A"
   )
   if (Test-Path -Path "${InstallHome}${pathSep}install" -PathType Container) {
     Debug-WmUifwLogW "Installation folder ${InstallHome} not empty, this may be an overinstall!"
@@ -894,30 +919,44 @@ function New-InstallationFromTemplate {
     return 3
   }
 
-  ${tempFolder} = Get-NewTempDir
-  Debug-WmUifwLogI "Using temporary folder ${tempFolder} for installation"
-
-  New-Item -Path "${tempFolder}" -ItemType Container
+  ${sessionLogDir} = Get-LogSessionDir
+  Debug-WmUifwLogI "Using session log folder ${sessionLogDir} for installation"
 
   Set-DefaultWMSCRIPT_Vars
 
   $sf = Get-Content ${templateFolder}${pathSep}install.wmscript -Raw | Invoke-EnvironmentSubstitution
-  $sf > "${tempFolder}${pathSep}install.wmscript"
+  $sf > "${sessionLogDir}${pathSep}install.wmscript"
 
   $pl = Get-ProductListForTemplate "${TemplateId}"
 
-  Add-content "${tempFolder}${pathSep}install.wmscript" -value "ProductList=$pl"
+  Add-content "${sessionLogDir}${pathSep}install.wmscript" -value "ProductList=$pl"
+  Add-content "${sessionLogDir}${pathSep}install.wmscript" `
+    -value ("InstallDir=" + (Convert-EscapePathString "${InstallHome}"))
+  Add-content "${sessionLogDir}${pathSep}install.wmscript" `
+    -value ("imageFile=" + (Convert-EscapePathString "${ProductsImagefile}"))
 
   $cmd = "${InstallerBinaryFile} -console -scriptErrorInteract no -debugLvl verbose"
-  $cmd += " -debugFile ""${tempFolder}${pathSep}install.log"""
+  $cmd += " -debugFile ""${sessionLogDir}${pathSep}install.log"""
   $cmd += " -installDir ""${InstallHome}"""
-  $cmd += " -readScript ""${tempFolder}${pathSep}install.wmscript"""
-  $cmd += " -readImage ""${Imagefile}"""
+  $cmd += " -readScript ""${sessionLogDir}${pathSep}install.wmscript"""
+  $cmd += " -readImage ""${ProductsImagefile}"""
 
   Debug-WmUifwLogI "Command to execute is"
   Debug-WmUifwLogI "$cmd"
 
   Invoke-AuditedCommand "$cmd" "Install"
+
+  if ("N/A" -eq ${FixesImagefile}) {
+    Debug-WmUifwLogI "Skipping fixes installation, image not provided"
+  }
+}
+
+function Convert-EscapePathString {
+  param(
+    [Parameter(mandatory = $true)]
+    [string] ${PathString}
+  )
+  ${PathString}.Replace('\', '\\').Replace(':', '\:')
 }
 
 ############## Initialize Variables

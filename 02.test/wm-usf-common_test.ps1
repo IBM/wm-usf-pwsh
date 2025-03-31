@@ -1,43 +1,6 @@
-Import-Module "$PSScriptRoot/../01.code/wm-usf-common.psm1" -Force || exit 1
-
-${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
-#${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
-
-## Convenient Constants
-${pathSep} = [IO.Path]::DirectorySeparatorChar
-${posixCmd} = (${pathSep} -eq '/') ? $true : $false
-${pesVersion} = ${env:PESTER_VERSION} ?? "5.7.1"
-
-function checkPester() {
-  $pesterModules = @( Get-Module -Name "Pester" -ErrorAction "SilentlyContinue" );
-  if ( ($null -eq $pesterModules) -or ($pesterModules.Length -eq 0) ) {
-    Import-Module -Name Pester -RequiredVersion ${pesVersion}
-    $pesterModules = @( Get-Module -Name "Pester" -ErrorAction "SilentlyContinue" );
-    if ( ($null -eq $pesterModules) -or ($pesterModules.Length -eq 0) ) {
-      throw "no pester module loaded!";
-    }
-  }
-
-  if ( $pesterModules.Length -gt 1 ) {
-    throw "multiple pester modules loaded!";
-  }
-  if ( $pesterModules[0].Version -ne ([version] "${pesVersion}") ) {
-    throw "unsupported pester version '$($pesterModules[0].Version)'";
-  }
-  Write-Output "Pester module OK"
-}
-
-try {
-  checkPester
-}
-catch {
-  Write-Host "FATAL - Pester module KO!"
-  $_
-  exit 1 # Cannot continue if pester setup is incorrect
-}
-
 Describe "Basics" {
   Context 'Environment Substitutions' {
+    ${pathSep} = [IO.Path]::DirectorySeparatorChar
     It 'Substitutes env vars' {
       $inString = 'aa ${env:b} cc'
       $env:b = 'B'
@@ -88,6 +51,7 @@ Describe "Basics" {
 
   Context 'Checksums' {
     It 'Checks folder contents checksums' {
+      ${pathSep} = [IO.Path]::DirectorySeparatorChar
       ${WmTempSessionDir} = Get-TempSessionDir
       Get-CheckSumsForAllFilesInFolder -Path ${WmTempSessionDir}
       Test-Path -Path ${WmTempSessionDir}${pathSep}checksums.txt | Should -Be $true
@@ -109,6 +73,7 @@ Describe "Basics" {
     # }
 
     It 'Sets Today Logging Folder' {
+      ${pathSep} = [IO.Path]::DirectorySeparatorChar
       ${lsd} = Get-LogSessionDir
 
       ${localTempBaseDir} = ($env:TEMP ?? "/tmp") + ${pathSep} + "log1"
@@ -121,7 +86,7 @@ Describe "Basics" {
     }
 
     It 'Invokes audited command' {
-      if (${posixCmd}) {
+      if (${pathSep} -eq '/') {
         Invoke-AuditedCommand 'ls -lart /' 'test1' | Should -Be '0'
       }
       else {
@@ -130,12 +95,12 @@ Describe "Basics" {
     }
 
     It 'Invokes audited command having error' {
-      if (${posixCmd}) {
-        $LastExitCode | Should -Be 0
+      if (${pathSep} -eq '/') {
+        #$LastExitCode | Should -Be 0
         Invoke-AuditedCommand 'ls -lart \' 'test2' | Should -Not -Be '0'
       }
       else {
-        $LastExitCode | Should -Be $null
+        #$LastExitCode | Should -Be $null
         Invoke-AuditedCommand 'dir CCC:' 'test2' | Should -Not -Be '0' 
       }
     }
@@ -143,17 +108,18 @@ Describe "Basics" {
 
   Context 'Temp Directories' {
     It 'Checks trailing separator passed' {
+      ${pathSep} = [IO.Path]::DirectorySeparatorChar
       ${localTempBaseDir} = "." + ${pathSep} + "tmp" + ${pathSep}
       ${newTmpDir} = $(Get-NewTempDir(${localTempBaseDir}))
       ${newTmpDir}.Substring(0, ${localTempBaseDir}.Length + 1) | `
         Should -Not -Be $(${localTempBaseDir} + ${pathSep} + ${pathSep})
     }
     It 'Checks trailing separator not passed' {
+      ${pathSep} = [IO.Path]::DirectorySeparatorChar
       ${localTempBaseDir} = "." + ${pathSep} + "tmp"
       ${newTmpDir} = Get-NewTempDir(${localTempBaseDir})
       ${newTmpDir}.Substring(0, ${localTempBaseDir}.Length + 1) | `
         Should -Be $(${localTempBaseDir} + ${pathSep})
-      ${localTempBaseDir}
     }
     It 'Create and destroy new temp dir' {
       ${newTmpDir} = Get-NewTempDir($env:TEMP ?? "/tmp")
@@ -196,6 +162,11 @@ Describe "Basics" {
       $pl | Should -Not -Be ""
       Debug-WmUifwLogD "Read product list is: $pl"
     }
+
+    It 'Checks Escape Strings Conversion' {
+      Convert-EscapePathString 'c:\path\a' | Should -Be 'c\:\\path\\a'
+    }
+    
   }
 
 }

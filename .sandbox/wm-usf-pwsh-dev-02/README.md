@@ -4,6 +4,12 @@ This Sandbox is provided as a convenience tool for exploratory testing when the 
 
 Note that the sandbox file is a template and cannot be run directly. Use the `startupSandbox.bat` to start the sandbox.
 
+Important note: currently, only onw sandbox at a time can be spun.
+The sandbox may be used to setup an installation directly at startup. The template to be used for test is specified with the environment variable `WMUSF_SBX_STARTUP_TEMPLATE` .
+If the variale is set, the startup code will attempt its instalation. If not, there will be no attempt at the installation of webMethods.
+
+Set the variable by copying `EXAMPLE.setStartupTemplate.bat` into `setStartupTemplate.bat` in the folder `.sandbox/wm-usf-pwsh-dev-02/inside` and editing the contents accordingly before starting the sandbox.
+
 ## Quick startup
 
 Just run / double-click on `startupSandbox.bat`

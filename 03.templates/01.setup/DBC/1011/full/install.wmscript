@@ -1,8 +1,10 @@
-#Tue Dec 17 17:10:03 CET 2024
-ServerURL=https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi
-selectedFixes=
-StartMenuFolder=Software AG DBC 1011 Full
+# Authored
+##### Hardwired template choices
 InstallLocProducts=
-HostName=localhost
-InstallProducts=${WMSCRIPT_InstallProducts}
-InstallDir=C\:\\EAI\\APP\\10_11\\SoftwareAG
+selectedFixes=
+##### Parameters that MUST be overwritten by the commandline
+#InstallDir=
+#imageFile=
+##### Parameters
+HostName=${WMSCRIPT_HostName}
+StartMenuFolder=${WMSCRIPT_StartMenuFolder}
