@@ -10,7 +10,7 @@ Debug-WmUifwLogI "Sandbox test -> Resolving Default Installer binary"
 Resolve-DefaultInstaller
 
 if ("${env:WMUSF_SBX_STARTUP_TEMPLATE}" -ne "" ) {
-  Debug-WmUifwLogI "System received the follotin template to be automatically set up: WMUSF_SBX_STARTUP_TEMPLATE=${env:WMUSF_SBX_STARTUP_TEMPLATE}"
+  Debug-WmUifwLogI "System received the following template to be automatically set up: WMUSF_SBX_STARTUP_TEMPLATE=${env:WMUSF_SBX_STARTUP_TEMPLATE}"
 }
 
 ${templateId} = "${env:WMUSF_SBX_STARTUP_TEMPLATE}"

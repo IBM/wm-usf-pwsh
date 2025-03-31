@@ -452,7 +452,7 @@ function Resolve-DefaultCceBootstrap() {
   param (
     # where to save the file 
     [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = "..${pathSep}09.artifacts",
+    [string]${fullOutputDirectoryPath} = (Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME'),
 
     [Parameter(Mandatory = $false)]
     [string]${fileName} = ${defaultCceBootstrapFileName}
