@@ -1,6 +1,7 @@
+Using module "../01.code/wm-usf-audit.psm1"
+
 Describe "Basics" {
   Context 'Environment Substitutions' {
-    ${pathSep} = [IO.Path]::DirectorySeparatorChar
     It 'Substitutes env vars' {
       $inString = 'aa ${env:b} cc'
       $env:b = 'B'
@@ -152,11 +153,12 @@ Describe "Basics" {
     }
   }
 
-  Context 'Logging' {
-    It 'logs an info message' {
-      Debug-WmUifwLogI "Log message" | Should -Be $null
-    }
-  }
+  # Todo - move to audit module
+  # Context 'Logging' {
+  #   It 'logs an info message' {
+  #     Debug-WmUifwLogI "Log message" | Should -Be $null
+  #   }
+  # }
   
   Context 'String Utils' {
     It 'sets latest version for product installer code' {
@@ -181,13 +183,13 @@ Describe "Basics" {
       $pl | Should -Not -Be $null
       $pl | Should -Not -Be 2
       $pl | Should -Not -Be ""
-      Debug-WmUifwLogD "Read product list is: $pl"
+      $audit = [WMUSF_Audit]::GetInstance()
+      $audit.LogD("Read product list is: $pl")
     }
 
     It 'Checks Escape Strings Conversion' {
       Convert-EscapePathString 'c:\path\a' | Should -Be 'c\:\\path\\a'
     }
-    
   }
 
 }

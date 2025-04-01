@@ -1,4 +1,7 @@
 
+Using module "./wm-usf-audit.psm1"
+$audit = [WMUSF_Audit]::GetInstance()
+
 ## Convenient Constants
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 # TODO: enforce, this is a bit naive
@@ -22,8 +25,6 @@ ${defaultCceBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstall
 ${defaultCceBootstrapFileName} = "cc-def-10.15-fix8-w64.bat"
 ${defaultCceBootstrapFileHash} = "728488F53CFD54B5835205F960C6501FE96B14408529EAA048441BA711B8F614"
 ${defaultCceBootstrapFileHashAlgorithm} = "SHA256"
-
-${debugOn} = ${env:WMUSF_DEBUG_ON} ?? 0
 
 #################### Auditing & the folders castle
 # All executions are producing logs in the audit folder
@@ -57,66 +58,6 @@ function Get-TempSessionDir {
   return Get-Variable -Name 'TempSessionDir' -Scope Script -ValueOnly
 }
 
-function Debug-WmUifwLog {
-  param (
-    # log message
-    [Parameter(Mandatory = $true)]
-    [string]${msg},
-    # log severity
-    [Parameter(Mandatory = $false)]
-    [string]${sev} = "I"
-  )
-  $l = Get-LogSessionDir
-  ${callingPoint} = $(Get-PSCallStack).SyncRoot.Get(2)
-  if (${debugOn} -eq 0) {
-    ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')${sev}|${msg}"
-    Write-Host "${fs}"
-    Add-content "${l}/session.log" -value "$fs"
-  }
-  else {
-    ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')${sev}|${callingPoint}|${msg}"
-    Write-Host "${fs}"
-    Add-content "${l}/session.log" -value "$fs"
-  }
-}
-
-function Debug-WmUifwLogI {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$msg
-  )
-  Debug-WmUifwLog -msg $msg
-}
-
-function Debug-WmUifwLogW {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$msg
-  )
-  Debug-WmUifwLog -msg $msg -sev "W"
-}
-
-function Debug-WmUifwLogE {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$msg
-  )
-  Debug-WmUifwLog -msg $msg -sev "E"
-}
-
-function Debug-WmUifwLogD {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$msg
-  )
-  if (${debugOn} -eq 1) {
-    Debug-WmUifwLog -msg $msg -sev "D"
-  }
-}
 ##### End Audit
 
 ########### Tools
@@ -169,7 +110,7 @@ function Get-QuickReturnObject {
   $r.Description = $Description
   if ($Code -ne 0) {
     $r.Errors += $Description
-    Debug-WmUifwLogE "Returning error code ${Code}, description ${Description}"
+    $audit.LogE("Returning error code ${Code}, description ${Description}")
   }
   return $r
 }
@@ -193,7 +134,7 @@ function Invoke-AuditedCommand() {
   )
 
   ${lsd} = Get-LogSessionDir
-  #Debug-WmUifwLogD "Running in POSIX environment: ${posixCmd}"
+  #$audit.LogD("Running in POSIX environment: ${posixCmd}"
 
   ${fullCmd} = ""
   ${baseOutputFileName} = "${lsd}${pathSep}${tag}"
@@ -214,21 +155,21 @@ function Invoke-AuditedCommand() {
   ${fullCmd} += '"'
 
   Add-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt" -Value "0"
-  Debug-WmUifwLogD "Executing Command:"
+  $audit.LogD( "Executing Command:")
 
-  Debug-WmUifwLogD "${fullCmd}"
+  $audit.LogD( "${fullCmd}")
 
   try {
     Invoke-Expression "${fullCmd}"
   }
   catch {
-    Debug-WmUifwLogE "Error caught while executing audited command with tag ${tag}"
+    $audit.LogE( "Error caught while executing audited command with tag ${tag}")
     $_ | Out-File "${baseOutputFileName}.pwsh.err.txt"
     $_
   }
   ${exitCode} = Get-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt"
 
-  Debug-WmUifwLogD "Command exited with code ${exitCode}"
+  $audit.LogD( "Command exited with code ${exitCode}")
   return ${exitCode} 
 }
 
@@ -244,16 +185,16 @@ function Invoke-WinrsAuditedCommandOnServerList {
     [string]${serverListFile}
   )
 
-  Debug-WmUifwLogI "Reading boxes from file ${serverListFile} ..."
+  $audit.LogI( "Reading boxes from file ${serverListFile} ...")
   Get-Content -Path "${serverListFile}" | ForEach-Object {
-    Debug-WmUifwLogI "Checking if box $_ is active..."
+    $audit.LogI( "Checking if box $_ is active...")
     ${active} = Invoke-Expression "winrs -r:$_ ""echo 0"" || echo 254" 
     if (${active} -eq "0") {
-      Debug-WmUifwLogI "Invoking command having tag ${tag} on server $_ ..."
+      $audit.LogI( "Invoking command having tag ${tag} on server $_ ...")
       Invoke-AuditedCommand "winrs -r:$_ ${command}" "${tag}_$_"
     }
     else {
-      Debug-WmUifwLogE "Server $_ not active!"
+      $audit.LogE( "Server $_ not active!")
     }
   }
 }
@@ -287,7 +228,7 @@ function Get-ProductListForTemplate() {
 
   ${plFile} = "${templateFolder}${PathSep}ProductsList.txt"
   if ( -Not (Test-Path -Path ${plFile} -PathType Leaf )) {
-    Debug-WmUifwLogE "File ${plFile} does not exist"
+    $audit.LogE( "File ${plFile} does not exist")
     return 1
   }
 
@@ -323,7 +264,7 @@ function Resolve-WmusfDirectory {
     if ( -Not (Test-Path -Path "${directory}" -PathType Container)) {
       Write-Error "Path ${directory} is not a directory! This library may not work as expected!"
       if ($alsoLog) {
-        Debug-WmUifwLogI "Path ${directory} is not a directory! This library may not work as expected!"
+        $audit.LogI("Path ${directory} is not a directory! This library may not work as expected!")
       }
       return "1"
     }
@@ -335,13 +276,13 @@ function Resolve-WmusfDirectory {
     New-Item -ItemType Directory -Path "${directory}" -Force
     if (Test-Path -Path "${directory}" -PathType Container) {
       if ($alsoLog) {
-        Debug-WmUifwLogI "Created Directory ${directory}"
+        $audit.LogI("Created Directory ${directory}")
       }
       return "2"
     }
     else {
       if ($alsoLog) {
-        Debug-WmUifwLogE "Path ${directory} was NOT created!"
+        $audit.LogE("Path ${directory} was NOT created!")
       }
       return "3"
     }
@@ -372,35 +313,35 @@ function Get-WebFileWithChecksumVerification {
     [string]$hashAlgorithm = "SHA256"
   )
 
-  Debug-WmUifwLogI "Downloading file ${fullOutputDirectoryPath}/${fileName}"
-  Debug-WmUifwLogI "From ${url}"
+  $audit.LogI("Downloading file ${fullOutputDirectoryPath}/${fileName}")
+  $audit.LogI("From ${url}")
   
   # assure destination folder
-  Debug-WmUifwLogD "Eventually create folder ${fullOutputDirectoryPath}..."
+  $audit.LogD("Eventually create folder ${fullOutputDirectoryPath}...")
   New-Item -Path ${fullOutputDirectoryPath} -ItemType Directory -Force | Out-Null
   $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
   # Download the file
   Invoke-WebRequest -Uri ${url} -OutFile "${fullFilePath}.verify"
 
   # Calculate the SHA256 hash of the downloaded file
-  Debug-WmUifwLogD "Guaranteeing ${hashAlgorithm} checksum ${expectedHash}"
+  $audit.LogD("Guaranteeing ${hashAlgorithm} checksum ${expectedHash}")
   ${fileHash} = Get-FileHash -Path "${fullFilePath}.verify" -Algorithm ${hashAlgorithm}
-  Debug-WmUifwLogD("File hash is " + ${fileHash}.Hash.ToString() + " .")
+  $audit.LogD("File hash is " + ${fileHash}.Hash.ToString() + " .")
   #Write-Host $fileHash
   # Compare the calculated hash with the expected hash
   $r = $false
   if (${fileHash}.Hash -eq ${expectedHash}) {
-    Debug-WmUifwLogI "The file's $hashAlgorithm hash matches the expected hash."
-    Debug-WmUifwLogD "Renaming ${fullFilePath}.verify to ${fullFilePath}"
+    $audit.LogI("The file's $hashAlgorithm hash matches the expected hash.")
+    $audit.LogD("Renaming ${fullFilePath}.verify to ${fullFilePath}")
     Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
     $r = $true
   }
   else {
     Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}.dubious"
-    Debug-WmUifwLogE "The file's ${hashAlgorithm} hash does not match the expected hash."
-    Debug-WmUifwLogE "Got ${fileHash}.Hash, but expected ${expectedHash}!"
+    $audit.LogE("The file's ${hashAlgorithm} hash does not match the expected hash.")
+    $audit.LogE("Got ${fileHash}.Hash, but expected ${expectedHash}!")
   }
-  Debug-WmUifwLogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
+  $audit.LogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
   return ${r}
 }
 
@@ -428,24 +369,24 @@ function Resolve-WebFileWithChecksumVerification {
 
   # Calculate the SHA256 hash of the downloaded file
   $fullFilePath = "${fullOutputDirectoryPath}${pathSep}${fileName}"
-  Debug-WmUifwLogI "Resolving file $fullFilePath ..."
+  $audit.LogI("Resolving file $fullFilePath ...")
 
   # if File exists, just check the checksum
   if (Test-Path $fullFilePath -PathType Leaf) {
-    Debug-WmUifwLogD("file $fullFilePath already exists.")
+    $audit.LogD("file $fullFilePath already exists.")
     $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgorithm
-    Debug-WmUifwLogD("its hash is " + $fileHash.Hash)
+    $audit.LogD("its hash is " + $fileHash.Hash)
     if ($fileHash.Hash -eq $expectedHash) {
-      Debug-WmUifwLogD "The file's $hashAlgorithm hash matches the expected hash."
+      $audit.LogD("The file's $hashAlgorithm hash matches the expected hash.")
       return $true
     }
     else {
-      Debug-WmUifwLogE "The $fullFilePath file's $hashAlgorithm hash does not match the expected hash. Downloaded file renamed"
-      Debug-WmUifwLogE ("Got " + ${fileHash}.Hash + ", but expected $expectedHash!")
+      $audit.LogE("The $fullFilePath file's $hashAlgorithm hash does not match the expected hash. Downloaded file renamed")
+      $audit.LogE("Got " + ${fileHash}.Hash + ", but expected $expectedHash!")
       return $false
     }
   }
-  Debug-WmUifwLogD("file $fullFilePath does not exist. Attempting to download...")
+  $audit.LogD("file $fullFilePath does not exist. Attempting to download...")
   $r = Get-WebFileWithChecksumVerification `
     -url "$url" `
     -fullOutputDirectoryPath "$fullOutputDirectoryPath" `
@@ -453,7 +394,7 @@ function Resolve-WebFileWithChecksumVerification {
     -expectedHash "$expectedHash" `
     -hashAlgorithm "$hashAlgorithm"
   
-  Debug-WmUifwLogD "Resolve-WebFileWithChecksumVerification returns $r"
+  $audit.LogD("Resolve-WebFileWithChecksumVerification returns $r")
   return $r
 }
 
@@ -531,12 +472,12 @@ function Get-CheckSumsForAllFilesInFolder {
   )
 
   if (Test-Path -Path ${OutFile}) {
-    Debug-WmUifwLogI "Removing older ${OutFile}"
+    $audit.LogI("Removing older ${OutFile}")
     Remove-Item -Path ${OutFile}
   }
 
   if (Test-Path -Path ${OutFileNamesSorted}) {
-    Debug-WmUifwLogI "Removing older ${OutFileNamesSorted}"
+    $audit.LogI("Removing older ${OutFileNamesSorted}")
     Remove-Item -Path ${OutFileNamesSorted}
   }
 
@@ -545,7 +486,7 @@ function Get-CheckSumsForAllFilesInFolder {
   ${checksums} = @()
   ${checksums2} = @()
   foreach ($file in $files) {
-    Debug-WmUifwLogI "Computing the checksum for file: $($file.FullName)"
+    $audit.LogI("Computing the checksum for file: $($file.FullName)")
     ${line} = Get-FileHash -Path "$($file.FullName)" -Algorithm ${hashAlgorithm}
     ${checksums} += (${line}.hash + "<--$($file.FullName)")
     ${checksums2} += ("$($file.FullName)-->" + ${line}.hash)
@@ -589,17 +530,17 @@ function Get-ProductsImageForTemplate() {
   )
   $pl = Get-ProductListForTemplate ${TemplateId}
   if ($pl.Length -le 5) {
-    Debug-WmUifwLogE "Wrong product list: $pl"
+    $audit.LogE("Wrong product list: $pl")
     return 1
   }
 
   if (-Not (Test-Path -Path ${BaseFolder} -PathType Container)) {
-    Debug-WmUifwLogW "Folder ${BaseFolder} does not exist, creating now..."
+    $audit.LogW("Folder ${BaseFolder} does not exist, creating now...")
     New-Item -Path ${BaseFolder} -ItemType Container
   }
   $templateDestinationfolder = "${BaseFolder}\products\${TemplateId}".Replace('\', ${pathSep})
   if (-Not (Test-Path -Path ${templateDestinationfolder} -PathType Container)) {
-    Debug-WmUifwLogW "Folder ${templateDestinationfolder} does not exist, creating now..."
+    $audit.LogW("Folder ${templateDestinationfolder} does not exist, creating now...")
     New-Item -Path ${templateDestinationfolder} -ItemType Container
   }
   ${zipLocation} = "$templateDestinationfolder${pathSep}products.zip"
@@ -607,12 +548,12 @@ function Get-ProductsImageForTemplate() {
   $debugFile = "$templateDestinationfolder${pathSep}image.creation.debug.log"
 
   if (Test-Path -Path ${zipLocation} -PathType Leaf) {
-    Debug-WmUifwLogI "Products zip file already exists, nothing to do"
+    $audit.LogI("Products zip file already exists, nothing to do")
     # Potential increment: force overwwrite
   }
   else {
     if (Test-Path -Path ${scriptLocation} -PathType Leaf) {
-      Debug-WmUifwLogI "Image creation script already exists: $scriptLocation"
+      $audit.LogI("Image creation script already exists: $scriptLocation")
       # Potential increment: force overwwrite
     }
     else {
@@ -633,8 +574,8 @@ function Get-ProductsImageForTemplate() {
     $cmd = "${InstallerBinary} -console -scriptErrorInteract no -debugLvl verbose "
     $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptLocation"" -writeImage ""${zipLocation}"" -user ""${UserName}"" -pass "
 
-    Debug-WmUifwLogI "Executing the following image creation command:"
-    Debug-WmUifwLogI "$cmd ***"
+    $audit.LogI("Executing the following image creation command:")
+    $audit.LogI("$cmd ***")
     $cmd += """${UserPassword}"""
     Invoke-AuditedCommand "$cmd" "CreateProductsZip"
   }
@@ -654,19 +595,19 @@ function New-BootstrapUpdMgr {
 
   if ("N/A" -eq ${UpdMgrHome}) {
     ${UpdMgrHome} = ('${WMUSF_UPD_MGR_HOME}' | Invoke-EnvironmentSubstitution)
-    Debug-WmUifwLogI "Resolved Update Manager Home from global: ${UpdMgrHome}"
+    $audit.LogI("Resolved Update Manager Home from global: ${UpdMgrHome}")
   }
 
   if ("" -eq "${UpdMgrHome}") {
-    Debug-WmUifwLogE "Framework error!"
+    $audit.LogE("Framework error!")
     return 9
   } 
   if (Test-Path -Path "${UpdMgrHome}${pathSep}bin${pathSep}UpdateManagerCMD.bat" -PathType Leaf) {
-    Debug-WmUifwLogw "Installation already exists, nothing to do" 
+    $audit.LogW("Installation already exists, nothing to do")
   }
   else {
     if (-Not (Test-Path ${BoostrapUpdateManagerBinary} -PathType Leaf)) {
-      Debug-WmUifwLogE "Bootstrap binary does not exist: ${BoostrapUpdateManagerBinary}"
+      $audit.LogE("Bootstrap binary does not exist: ${BoostrapUpdateManagerBinary}")
       return 1
     }
 
@@ -674,11 +615,11 @@ function New-BootstrapUpdMgr {
     # Warning: this is not documented and subject to change
     ${tempFolder} = Get-NewTempDir
     ${tempFolder} += "${pathSep}UpdMgrInstallation"
-    Debug-WmUifwLogI "Using temporary folder ${tempFolder}"
+    $audit.LogI("Using temporary folder ${tempFolder}")
     New-Item -Path ${tempFolder} -ItemType Container
     Expand-Archive -Path "${BoostrapUpdateManagerBinary}" -DestinationPath "${tempFolder}"
     if (-Not (Test-Path "${tempFolder}${pathSep}sum-setup.bat")) {
-      Debug-WmUifwLogE "Wrong archive, it does not contain the file sum-setup.bat"
+      $audit.LogE("Wrong archive, it does not contain the file sum-setup.bat")
     }
     else {
       Push-Location .
@@ -687,8 +628,8 @@ function New-BootstrapUpdMgr {
       if (${OnlineMode} -ne $true) {
         $cmd += "-i ""${ImageFile}"""
       }
-      Debug-WmUifwLogI "Bootstrapping UpdateManager with the following command"
-      Debug-WmUifwLogI "$cmd"
+      $audit.LogI("Bootstrapping UpdateManager with the following command")
+      $audit.LogI("$cmd")
       Invoke-AuditedCommand "$cmd" "BootstrapUpdMgr"
       Pop-Location
     }
@@ -712,7 +653,7 @@ function Get-InventoryForTemplate {
 
   $lProductsCsv = Get-ProductListForTemplate ${TemplateId}
   if ($lProductsCsv.Length -le 5) {
-    Debug-WmUifwLogE "Wrong product list: $lProductsCsv"
+    $audit.LogE("Wrong product list: $lProductsCsv")
     return 1
   }
 
@@ -775,35 +716,35 @@ function Get-FixesImageForTemplate {
   )
 
   if (-Not (Test-Path -Path "${UpdMgrHome}${pathSep}bin${pathSep}UpdateManagerCMD.bat" -PathType Leaf)) {
-    Debug-WmUifwLogE "Incorrect Update Manager path: ${UpdMgrHome}"
+    $audit.LogE("Incorrect Update Manager path: ${UpdMgrHome}")
     return 1
   }
 
   if (-Not (Test-Path -Path ${BaseFolder} -PathType Container)) {
-    Debug-WmUifwLogW "Folder ${BaseFolder} does not exist, creating now..."
+    $audit.LogW("Folder ${BaseFolder} does not exist, creating now...")
     New-Item -Path ${BaseFolder} -ItemType Container
   }
   ${currentDay} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%Y-%m-%d')"
   ${templateDestinationfolder} = "${BaseFolder}\fixes\${currentDay}\${TemplateId}".Replace('\', ${pathSep})
   if (-Not (Test-Path -Path ${templateDestinationfolder} -PathType Container)) {
-    Debug-WmUifwLogW "Folder ${templateDestinationfolder} does not exist, creating now..."
+    $audit.LogW("Folder ${templateDestinationfolder} does not exist, creating now...")
     New-Item -Path ${templateDestinationfolder} -ItemType Container
   }
 
   ${zipLocation} = "$templateDestinationfolder${pathSep}fixes.zip"
   if (Test-Path -Path "${zipLocation}" -PathType Leaf) {
-    Debug-WmUifwLogI "Fixes image file already exists: ${zipLocation}"
+    $audit.LogI("Fixes image file already exists: ${zipLocation}")
   }
   else {
     ${inventoryLocation} = "${templateDestinationfolder}${pathSep}inventory.json"
     if (Test-Path -Path "${inventoryLocation}" -PathType Leaf) {
-      Debug-WmUifwLogI "Inventory file ${inventoryLocation} already exists, continuing with this one"
+      $audit.LogI("Inventory file ${inventoryLocation} already exists, continuing with this one")
     }
     else {
       Get-InventoryForTemplate -TemplateId ${TemplateId} -OutFile "${inventoryLocation}"
     }
     if (Test-Path -Path "${inventoryLocation}" -PathType Leaf) {
-      Debug-WmUifwLogI "Inventory file ${inventoryLocation} already exists, continuing with this one"
+      $audit.LogI("Inventory file ${inventoryLocation} already exists, continuing with this one")
     }
     else {
       Get-InventoryForTemplate -TemplateId ${TemplateId} -OutFile "${inventoryLocation}"
@@ -831,8 +772,8 @@ function Get-FixesImageForTemplate {
     $cmd += " -createImage ""${zipLocation}"""
     $cmd += "-empowerUser ""${UserName}"""
     $cmd += " -empowerPass "
-    Debug-WmUifwLogI "Executing audited command:"
-    Debug-WmUifwLogI "$cmd ***"
+    $audit.LogI("Executing audited command:")
+    $audit.LogI("$cmd ***")
     $cmd += """${UserPassword}"""
     Invoke-AuditedCommand "$cmd" "ComputeFixesImage"
     Pop-Location
@@ -848,19 +789,19 @@ function Set-DefaultGlobalVariable {
   )
   ${s} = '${env:' + "${WMUSF_VariableName}" + "}"
   ${a} = ${s} | Invoke-EnvironmentSubstitution
-  # Debug-WmUifwLogI ("a=--${a}--" + "${a}".Length)
+  # $audit.LogI ("a=--${a}--" + "${a}".Length)
   if ( 0 -eq "${a}".Length) {
     $v2 = (Get-Variable -Name "${WMUSF_VariableName}" -Scope Global -ErrorAction SilentlyContinue).Value
     if ( 0 -eq "${v2}".Length) {
-      Debug-WmUifwLogD "Setting default variable value for ${WMUSF_VariableName} to ${WMUSF_DefaultValue}"
-      Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${WMUSF_DefaultValue}" 
+      $audit.LogD("Setting default variable value for ${WMUSF_VariableName} to ${WMUSF_DefaultValue}")
+      Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${WMUSF_DefaultValue}"
     }
     else {
-      Debug-WmUifwLogD "Variable ${WMUSF_VariableName} already set to ${WMUSF_DefaultValue} via global scope"
+      $audit.LogD("Variable ${WMUSF_VariableName} already set to ${WMUSF_DefaultValue} via global scope")
     }
   }
   else {
-    Debug-WmUifwLogD "Variable ${WMUSF_VariableName} already set to ${a} via environment, setting global value now..."
+    $audit.LogD("Variable ${WMUSF_VariableName} already set to ${a} via environment, setting global value now...")
     Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${a}"
   }
 }
@@ -917,11 +858,11 @@ function Get-TemplateBaseFolder {
   )
   ${templateFolder} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}".Replace('\', ${pathSep})
   if ( -Not (Test-Path -Path ${templateFolder} -PathType Container )) {
-    Debug-WmUifwLogE "Template ${TemplateId} does not exist"
+    $audit.LogE("Template ${TemplateId} does not exist")
     return 1
   }
   if ( -Not (Test-Path -Path ${templateFolder}${pathSep}ProductsList.txt -PathType Leaf)) {
-    Debug-WmUifwLogE "Folder --${templateFolder}-- exists, but it is not a template!"
+    $audit.LogE("Folder --${templateFolder}-- exists, but it is not a template!")
     return 2
   }
   return ${templateFolder}
@@ -937,24 +878,24 @@ function Install-FixesForUpdateManager () {
     [Parameter(mandatory = $true)]
     [string] ${FixesImagefile}
   )
-  
+
   $r = Get-NewResultObject
   if (-Not (Test-Path "${UpdMgrHome}/bin/UpdateManagerCMD.bat" -PathType Leaf)) {
     $r.Code = 2
     $r.Description = "Update Manager not found at ${UpdMgrHome}, install it first!"
-    Debug-WmUifwLogE "$r.Description"
+    $audit.LogE("$r.Description")
     return $r
   }
   if (-Not (Test-Path "${FixesImagefile}" -PathType Leaf)) {
     $r.Code = 3
     $r.Description = "Image file not present: ${FixesImagefile}"
-    Debug-WmUifwLogE "$r.Description" 
+    $audit.LogE("$r.Description")
     return $r
   }
 
-  Debug-WmUifwLogI "Patching Update Manager installation at ${UpdMgrHome} from ${FixesImagefile}"
+  $audit.LogI("Patching Update Manager installation at ${UpdMgrHome} from ${FixesImagefile}")
   Push-Location .
-  Set-Location "${UpdMgrHome}/bin" 
+  Set-Location "${UpdMgrHome}/bin"
   $cmd = ".${pathSep}UpdateManagerCMD.bat -selfUpdate true -installFromImage ""${FixesImagefile}"""
   Invoke-AuditedCommand "$cmd" "UpdMgrPatchFromImage"
   Pop-Location
@@ -983,7 +924,7 @@ function New-InstallationFromTemplate {
   $r = Get-NewResultObject
 
   if (Test-Path -Path "${InstallHome}${pathSep}install" -PathType Container) {
-    Debug-WmUifwLogW "Installation folder ${InstallHome} not empty, this may be an overinstall!"
+    $audit.LogW("Installation folder ${InstallHome} not empty, this may be an overinstall!")
     $r.Warnings += "Installation folder ${InstallHome} not empty, this may be an overinstall!"
     $r
   }
@@ -992,22 +933,22 @@ function New-InstallationFromTemplate {
   if ( "{templateFolder}".Length -le 6 ) {
     $r.Code = 2
     $r.Description = "Error (code {templateFolder}) while getting template folder for template ${TemplateId}"
-    Debug-WmUifwLogD $r.Description 
+    $audit.LogD("$r.Description")
     return $r
   }
 
   if ( -Not (Test-Path -Path "${templateFolder}${pathSep}install.wmscript" -PathType Leaf )) {
-    Debug-WmUifwLogE "The template is not installable!"
+    $audit.LogE("The template is not installable!")
     return 2
   }
 
   if ( -Not (Test-Path -Path ${InstallerBinaryFile} -PathType Leaf )) {
-    Debug-WmUifwLogE "Installer binary file ${InstallerBinaryFile} does not exist"
+    $audit.LogE("Installer binary file ${InstallerBinaryFile} does not exist")
     return 3
   }
 
   ${sessionLogDir} = Get-LogSessionDir
-  Debug-WmUifwLogI "Using session log folder ${sessionLogDir} for installation"
+  $audit.LogI("Using session log folder ${sessionLogDir} for installation")
 
   Set-DefaultWMSCRIPT_Vars
 
@@ -1028,18 +969,18 @@ function New-InstallationFromTemplate {
   $cmd += " -readScript ""${sessionLogDir}${pathSep}install.wmscript"""
   $cmd += " -readImage ""${ProductsImagefile}"""
 
-  Debug-WmUifwLogI "Command to execute is"
-  Debug-WmUifwLogI "$cmd"
+  $audit.LogI("Command to execute is")
+  $audit.LogI("$cmd")
 
   Invoke-AuditedCommand "$cmd" "Install"
 
   if ("N/A" -eq ${FixesImagefile}) {
-    Debug-WmUifwLogI "Skipping fixes installation, image not provided"
+    $audit.LogI("Skipping fixes installation, image not provided")
   }
   else {
     $r1 = Install-FixesForUpdateManager -FixesImagefile ${FixesImagefile}
     if ($r1.Code -ne 0) {
-      Debug-WmUifwLogE "Update manager patch failed, cannot continue"
+      $audit.LogE("Update manager patch failed, cannot continue")
     }
   }
 }
@@ -1072,11 +1013,11 @@ function Resolve-WmusfCommonModuleLocals() {
 
   Set-DefaultWMUSF_Vars
 
-  Debug-WmUifwLogI "Module wm-usf-common.psm1 initialized"
-  Debug-WmUifwLogD "AuditBaseDir: ${auditDir}"
-  Debug-WmUifwLogD "LogSessionDir: ${logSessionDir}"
-  Debug-WmUifwLogD "TempSessionDir: ${tempFolder}"
-  Debug-WmUifwLogD "WmUsHome: $(Get-WmUsfHomeDir)"
+  $audit.LogI("Module wm-usf-common.psm1 initialized")
+  $audit.LogD("AuditBaseDir: ${auditDir}")
+  $audit.LogD("LogSessionDir: ${logSessionDir}")
+  $audit.LogD("TempSessionDir: ${tempFolder}")
+  $audit.LogD("WmUsHome: $(Get-WmUsfHomeDir)")
 
 }
 Resolve-WmusfCommonModuleLocals
