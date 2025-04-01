@@ -130,14 +130,46 @@ function Read-UserSecret() {
   $x
 }
 
+## Framework Error and Result Management
+class ResultObject {
+  [int]$Code
+  [string]$Description
+  [string]$PayloadString
+  [array]$Warnings
+  [array]$Messages
+  [array]$Errors
+  [array]$NestedResults
+  ResultObject() {
+    $this.Code = 1
+    $this.Description = "Initialized"
+    $this.PayloadString = ""
+    $this.Warnings = @()
+    $this.Messages = @()
+    $this.Errors = @()
+    $this.NestedResults = @()
+  }
+}
 function Get-NewResultObject {
+  $r = [ResultObject]::new()
+  return $r
+}
 
-  $r = New-Object PSObject -Property @{
-    Code        = 1
-    Description = "Initialized"
-    Warnings    = @()
-    Messages    = @()
-    Errors      = @()
+function Get-QuickReturnObject {
+  param(
+    [Parameter(Mandatory = $false)]
+    [ResultObject]${r},
+
+    [Parameter(Mandatory = $false)]
+    [string]${Code} = 0,
+
+    [Parameter(Mandatory = $false)]
+    [string]${Description} = "Success"
+  )
+  $r.Code = $Code
+  $r.Description = $Description
+  if ($Code -ne 0) {
+    $r.Errors += $Description
+    Debug-WmUifwLogE "Returning error code ${Code}, description ${Description}"
   }
   return $r
 }

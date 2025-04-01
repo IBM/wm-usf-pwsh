@@ -56,6 +56,18 @@ Describe "Basics" {
       $ro.Code | Should -Be 1
     }
 
+    It 'Checks fundamental result object with error code' {
+      $ro = Get-NewResultObject
+      $r2 = Get-QuickReturnObject $ro 2 "Error message"
+      $r2.Code | Should -Be 2
+    }
+
+    It 'Checks fundamental result object without code' {
+      $ro = Get-NewResultObject
+      $r2 = Get-QuickReturnObject $ro
+      $r2.Code | Should -Be 0
+    }
+
   }
 
   Context 'Checksums' {
