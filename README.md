@@ -22,15 +22,23 @@ The sandbox will take some time for its first run. After the startup finishes, y
 
 ## Framework Environment Variables
 
+### Default values
 
-Name|Dfeault Posix Value|Default Windows Value|Notes
+Name|Default Posix Value|Default Windows Value|Notes
 -|-|-|-
-WMUSF_AUDIT_DIR|
+WMUSF_ARTIFACTS_CACHE_HOME| `/opt/WMUSF/Artifacts` | `C:\WMUSF\Artifacts` |Artifacts cache directory for the framework
+WMUSF_AUDIT_DIR| `/tmp/WMUSF_Audit` | `c:\y\sandbox\WMUSF_Audit` |Audit base directory for the framework
+WMUSF_BOOTSTRAP_UPD_MGR_BIN| `${WMUSF_ARTIFACTS_CACHE_HOME}/${defaultWmumBootstrapFileName}` |Same as left|Binary file for Update Manager bootstrap
+WMUSF_DEBUG_ON|0|0|Put on 1 to have more debugging information in the audit
+WMUSF_LOG_SESSION_DIR| `${WMUSF_AUDIT_DIR}/logs` | `${WMUSF_AUDIT_DIR}\logs` |Log directory for the current session
+WMUSF_TEMP_DIR| `/tmp` | `${env:TEMP}` |Temporary directory for the framework
+WMUSF_UPD_MGR_HOME| `/opt/wmUpdMgr11` | `c:\webMethodsUpdateManager` |Home installation Folder for Update Manager
 
+### Test scenarios for this project values
 
 Name|Default Value in Sandbox|Default Value in devcontainer|Default Framework Value|Notes
 -|-|-|-|-
-WMUSF_AUDIT_DIR| `c:\y\sandbox\WMUSF_Audit` |
+WMUSF_AUDIT_DIR| `c:\y\sandbox\WMUSF_Audit` | `${project_home}$/local/devcontainer/audit` |
 WMUSF_ARTIFACTS_CACHE_HOME| `K:` | `${project_home}$/09.artifacts`
 
 ## Script Scoped Variables

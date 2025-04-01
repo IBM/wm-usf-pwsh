@@ -8,7 +8,8 @@
   },
   "remoteEnv": {
     "CONTAINER_WORKSPACE_FOLDER": "${containerWorkspaceFolder}",
-    "WMUSF_ARTIFACTS_CACHE_HOME": "${containerWorkspaceFolder}/09.artifacts"
+    "WMUSF_ARTIFACTS_CACHE_HOME": "${containerWorkspaceFolder}/09.artifacts",
+    "WMUSF_AUDIT_DIR" : "${containerWorkspaceFolder}/local/devcontainer/audit"
   },
   "name": "wm-usf-pwsh-dev-01",
   "containerUser": "vscode",
