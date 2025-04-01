@@ -1,0 +1,118 @@
+# This class encapsulates the functionality to download binaries from webMethods download center
+Using module "./wm-usf-audit.psm1"
+Using module "./wm-usf-result.psm1"
+class WMUSF_Downloader {
+  static [WMUSF_Downloader] $Instance = [WMUSF_Downloader]::GetInstance()
+  hidden static [WMUSF_Downloader] $_instance = [WMUSF_Downloader]::new()
+  hidden [WMUSF_Audit] $audit
+
+  # Download constants
+  #TODO check if Set-Variable test -Option Constant -Value 100 approach is better
+  hidden static [string] $defaultInstallerDownloadURL = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe"
+  hidden static [string] $defaultInstallerFileName = "SoftwareAGInstaller20240626-w64.exe"
+  hidden static [string] $defaultInstallerFileHash = "cdfff7e2f420d182a4741d90e4ee02eb347db28bdaa4969caca0a3ac1146acd3"
+  hidden static [string] $defaultInstallerFileHashAlgorithm = "SHA256"
+
+  hidden static [string] $defaultWmumBootstrapDownloadURL = "https://empowersdc.softwareag.com/ccinstallers/SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
+  hidden static [string] $defaultWmumBootstrapFileName = "SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
+  hidden static [string] $defaultWmumBootstrapFileHash = "53d283ba083a3535dd12831aa05ab0e8a590ff577053ab9eebedabe5a499fbfa"
+  hidden static [string] $defaultWmumBootstrapFileHashAlgorithm = "SHA256"
+
+  hidden static [string] $defaultCceBootstrapDownloadURL = "https://empowersdc.softwareag.com/ccinstallers/cc-def-10.15-fix8-w64.bat"
+  hidden static [string] $defaultCceBootstrapFileName = "cc-def-10.15-fix8-w64.bat"
+  hidden static [string] $defaultCceBootstrapFileHash = "728488F53CFD54B5835205F960C6501FE96B14408529EAA048441BA711B8F614"
+  hidden static [string] $defaultCceBootstrapFileHashAlgorithm = "SHA256"
+
+  [Guid] $WMUSF_DownloaderTarget = [Guid]::NewGuid()
+
+  hidden WMUSF_Downloader() {
+    $this.audit = [WMUSF_Audit]::GetInstance()
+  }
+
+  hidden static [WMUSF_Downloader] GetInstance() {
+    return [WMUSF_Downloader]::_instance
+  }
+
+  [WMUSF_Result] GetWebFileWithChecksumVerification(
+    [string]$url, [string]$fileName, 
+    [string]$expectedHash, [string]$hashAlgorithm = "SHA256", 
+    [string]$fullOutputDirectoryPath = $null) {
+
+    $r = [WMUSF_Result]::new()
+    
+    $this.audit.LogI("Downloading file ${fullOutputDirectoryPath}/${fileName}")
+    $this.audit.LogI("From ${url}")
+    
+    # assure destination folder
+    $this.audit.LogD("Eventually create folder ${fullOutputDirectoryPath}...")
+    New-Item -Path ${fullOutputDirectoryPath} -ItemType Directory -Force | Out-Null
+    $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
+    # Download the file
+    Invoke-WebRequest -Uri ${url} -OutFile "${fullFilePath}.verify"
+  
+    # Calculate the SHA256 hash of the downloaded file
+    $this.audit.LogD("Guaranteeing ${hashAlgorithm} checksum ${expectedHash}")
+    ${fileHash} = Get-FileHash -Path "${fullFilePath}.verify" -Algorithm ${hashAlgorithm}
+    $this.audit.LogD("File hash is " + ${fileHash}.Hash.ToString() + " .")
+    #Write-Host $fileHash
+    # Compare the calculated hash with the expected hash
+    $r.Code = 1
+    if (${fileHash}.Hash -eq ${expectedHash}) {
+      $this.audit.LogI("The file's $hashAlgorithm hash matches the expected hash.")
+      $this.audit.LogD("Renaming ${fullFilePath}.verify to ${fullFilePath}")
+      Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
+      $r.Code = 0
+      $r.Description = "Success"
+    }
+    else {
+      Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}.dubious"
+      $this.audit.LogE("The file's ${hashAlgorithm} hash does not match the expected hash.")
+      $this.audit.LogE("Got ${fileHash}.Hash, but expected ${expectedHash}!")
+      $r.Description = "Checksum verification failed"
+    }
+    $this.audit.LogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
+    return ${r}
+  }
+
+  [WMUSF_Result] AssureWebFileWithChecksumVerification(
+    [string]$url, [string]$fullOutputDirectoryPath = [System.IO.Path]::GetTempPath(),
+    [string]$fileName,
+    [string]$expectedHash, [string]$hashAlgorithm = "SHA256"
+  ) {
+
+    $r = [WMUSF_Result]::new()
+    # Calculate the SHA256 hash of the downloaded file
+    $fullFilePath = ${fullOutputDirectoryPath} + [IO.Path]::DirectorySeparatorChar + ${fileName}
+    $fullFilePath = $fullFilePath -replace `
+    ([IO.Path]::DirectorySeparatorChar + [IO.Path]::DirectorySeparatorChar), `
+      [IO.Path]::DirectorySeparatorChar
+    $this.audit.LogI("Resolving file $fullFilePath ...")
+
+    # if File exists, just check the checksum
+    if (Test-Path $fullFilePath -PathType Leaf) {
+      $this.audit.LogD("file $fullFilePath already exists.")
+      $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgorithm
+      $this.audit.LogD("its hash is " + $fileHash.Hash)
+      if ($fileHash.Hash -eq $expectedHash) {
+        $this.audit.LogD("The file's $hashAlgorithm hash matches the expected hash.")
+        return [WMUSF_Result]::GetSuccessResult()
+      }
+      else {
+        $this.audit.LogE("The $fullFilePath file's $hashAlgorithm hash does not match the expected hash. Downloaded file renamed")
+        $this.audit.LogE("Got " + ${fileHash}.Hash + ", but expected $expectedHash!")
+        return  [WMUSF_Result]::GetSimpleResult(9, "Checksum verification failed", $this.audit)
+      }
+    }
+    $this.audit.LogD("file $fullFilePath does not exist. Attempting to download...")
+    $r = $this.GetWebFileWithChecksumVerification(
+      "$url",
+      "$fullOutputDirectoryPath",
+      "$fileName",
+      "$expectedHash",
+      "$hashAlgorithm"
+    )
+  
+    $this.audit.LogD("Resolve-WebFileWithChecksumVerification returns " + $r.Code)
+    return $r
+  }
+}

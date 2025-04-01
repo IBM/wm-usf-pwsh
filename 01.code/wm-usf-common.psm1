@@ -1,13 +1,15 @@
 
 Using module "./wm-usf-audit.psm1"
+Using module "./wm-usf-result.psm1"
+Using module "./wm-usf-downloader.psm1"
+
 $audit = [WMUSF_Audit]::GetInstance()
+$downloader = [WMUSF_Downloader]::GetInstance()
 
 ## Convenient Constants
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 # TODO: enforce, this is a bit naive
 ${sysTemp} = ${env:TEMP} ?? '/tmp'
-#${comspec} = ${env:COMSPEC} ?? ${env:SHELL} ?? '/bin/sh'
-#${posixCmd} = (${comspec}.Substring(0, 1) -eq '/') ? $true : $false
 ${posixCmd} = (${pathSep} -eq '/') ? $true : $false
 
 # Context constants
@@ -54,8 +56,6 @@ function Get-TempSessionDir {
   return Get-Variable -Name 'TempSessionDir' -Scope Script -ValueOnly
 }
 
-##### End Audit
-
 ########### Tools
 function Read-UserSecret() {
   param (
@@ -100,7 +100,6 @@ function Invoke-WinrsAuditedCommandOnServerList {
     }
   }
 }
-
 
 function Resolve-ProductVersionToLatest() {
   param (
@@ -193,59 +192,6 @@ function Resolve-WmusfDirectory {
 }
 
 ########### Assets Assurance
-function Get-WebFileWithChecksumVerification {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$url,
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]$fullOutputDirectoryPath = $(Get-TempSessionDir) ,
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]$fileName = "file.bin",
-    # Hash to be checked
-    [Parameter(Mandatory = $true)]
-    [string]$expectedHash,
-
-    # Hash to be checked
-    [Parameter(Mandatory = $false)]
-    [string]$hashAlgorithm = "SHA256"
-  )
-
-  $audit.LogI("Downloading file ${fullOutputDirectoryPath}/${fileName}")
-  $audit.LogI("From ${url}")
-  
-  # assure destination folder
-  $audit.LogD("Eventually create folder ${fullOutputDirectoryPath}...")
-  New-Item -Path ${fullOutputDirectoryPath} -ItemType Directory -Force | Out-Null
-  $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
-  # Download the file
-  Invoke-WebRequest -Uri ${url} -OutFile "${fullFilePath}.verify"
-
-  # Calculate the SHA256 hash of the downloaded file
-  $audit.LogD("Guaranteeing ${hashAlgorithm} checksum ${expectedHash}")
-  ${fileHash} = Get-FileHash -Path "${fullFilePath}.verify" -Algorithm ${hashAlgorithm}
-  $audit.LogD("File hash is " + ${fileHash}.Hash.ToString() + " .")
-  #Write-Host $fileHash
-  # Compare the calculated hash with the expected hash
-  $r = $false
-  if (${fileHash}.Hash -eq ${expectedHash}) {
-    $audit.LogI("The file's $hashAlgorithm hash matches the expected hash.")
-    $audit.LogD("Renaming ${fullFilePath}.verify to ${fullFilePath}")
-    Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
-    $r = $true
-  }
-  else {
-    Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}.dubious"
-    $audit.LogE("The file's ${hashAlgorithm} hash does not match the expected hash.")
-    $audit.LogE("Got ${fileHash}.Hash, but expected ${expectedHash}!")
-  }
-  $audit.LogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
-  return ${r}
-}
 
 function Resolve-WebFileWithChecksumVerification {
   param (
@@ -289,12 +235,13 @@ function Resolve-WebFileWithChecksumVerification {
     }
   }
   $audit.LogD("file $fullFilePath does not exist. Attempting to download...")
-  $r = Get-WebFileWithChecksumVerification `
-    -url "$url" `
-    -fullOutputDirectoryPath "$fullOutputDirectoryPath" `
-    -fileName "$fileName" `
-    -expectedHash "$expectedHash" `
-    -hashAlgorithm "$hashAlgorithm"
+  $r = $downloader.GetWebFileWithChecksumVerification(
+    "$url",
+    "$fullOutputDirectoryPath",
+    "$fileName",
+    "$expectedHash",
+    "$hashAlgorithm"
+  )
   
   $audit.LogD("Resolve-WebFileWithChecksumVerification returns $r")
   return $r
