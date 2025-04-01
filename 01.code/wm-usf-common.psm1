@@ -837,7 +837,7 @@ function Set-DefaultWMUSF_Vars {
   # Framework related
   if ( ${posixCmd} ) {
     Set-DefaultGlobalVariable "WMUSF_UPD_MGR_HOME" "/opt/wmUpdMgr11"
-    Set-DefaultGlobalVariable "WMUSF_ARTIFACTS_CACHE_HOME" "/tmp/Artifacts"
+    Set-DefaultGlobalVariable "WMUSF_ARTIFACTS_CACHE_HOME" "/opt/WMUSF/Artifacts"
   }
   else {
     Set-DefaultGlobalVariable "WMUSF_UPD_MGR_HOME" "C:\webMethodsUpdateManager"
