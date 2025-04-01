@@ -258,6 +258,7 @@ function Invoke-WinrsAuditedCommandOnServerList {
   }
 }
 
+
 function Resolve-ProductVersionToLatest() {
   param (
     [Parameter(Mandatory = $true)]
@@ -926,6 +927,41 @@ function Get-TemplateBaseFolder {
   return ${templateFolder}
 }
 
+function Install-FixesForInstallation () {
+}
+
+function Install-FixesForUpdateManager () {
+  param(
+    [Parameter(Mandatory = $false)]
+    [string]${UpdMgrHome} = (Resolve-GlobalScriptVar "WMUSF_UPD_MGR_HOME"),
+    [Parameter(mandatory = $true)]
+    [string] ${FixesImagefile}
+  )
+  
+  $r = Get-NewResultObject
+  if (-Not (Test-Path "${UpdMgrHome}/bin/UpdateManagerCMD.bat" -PathType Leaf)) {
+    $r.Code = 2
+    $r.Description = "Update Manager not found at ${UpdMgrHome}, install it first!"
+    Debug-WmUifwLogE "$r.Description"
+    return $r
+  }
+  if (-Not (Test-Path "${FixesImagefile}" -PathType Leaf)) {
+    $r.Code = 3
+    $r.Description = "Image file not present: ${FixesImagefile}"
+    Debug-WmUifwLogE "$r.Description" 
+    return $r
+  }
+
+  Debug-WmUifwLogI "Patching Update Manager installation at ${UpdMgrHome} from ${FixesImagefile}"
+  Push-Location .
+  Set-Location "${UpdMgrHome}/bin" 
+  $cmd = ".${pathSep}UpdateManagerCMD.bat -selfUpdate true -installFromImage ""${FixesImagefile}"""
+  Invoke-AuditedCommand "$cmd" "UpdMgrPatchFromImage"
+  Pop-Location
+  $r.Code = 0
+  $r.Description = "Done"
+  return $r
+}
 function New-InstallationFromTemplate {
   param(
     [Parameter(mandatory = $true)]
@@ -943,14 +979,21 @@ function New-InstallationFromTemplate {
     [Parameter(mandatory = $false)]
     [string] ${FixesImagefile} = "N/A"
   )
+
+  $r = Get-NewResultObject
+
   if (Test-Path -Path "${InstallHome}${pathSep}install" -PathType Container) {
     Debug-WmUifwLogW "Installation folder ${InstallHome} not empty, this may be an overinstall!"
+    $r.Warnings += "Installation folder ${InstallHome} not empty, this may be an overinstall!"
+    $r
   }
 
   ${templateFolder} = Get-TemplateBaseFolder "${TemplateId}"
   if ( "{templateFolder}".Length -le 6 ) {
-    Debug-WmUifwLogD "Error (code {templateFolder}) while getting template folder for template ${TemplateId}"
-    return 1
+    $r.Code = 2
+    $r.Description = "Error (code {templateFolder}) while getting template folder for template ${TemplateId}"
+    Debug-WmUifwLogD $r.Description 
+    return $r
   }
 
   if ( -Not (Test-Path -Path "${templateFolder}${pathSep}install.wmscript" -PathType Leaf )) {
@@ -992,6 +1035,12 @@ function New-InstallationFromTemplate {
 
   if ("N/A" -eq ${FixesImagefile}) {
     Debug-WmUifwLogI "Skipping fixes installation, image not provided"
+  }
+  else {
+    $r1 = Install-FixesForUpdateManager -FixesImagefile ${FixesImagefile}
+    if ($r1.Code -ne 0) {
+      Debug-WmUifwLogE "Update manager patch failed, cannot continue"
+    }
   }
 }
 

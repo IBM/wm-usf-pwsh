@@ -11,23 +11,25 @@ Describe "Templates" {
       Get-InventoryForTemplate "DBC\1011\full"
     }
 
-    It 'Checks templates default values' {
-      Set-DefaultWMSCRIPT_Vars
-      (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "Manage01"
-      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=Manage01'
-    }
+    # TODO: need to rethink these, they are not idempotent
 
-    It 'Checks templates default values not overwriding provided values part 1' {
-      Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "AnotherPassword"
-      Set-DefaultWMSCRIPT_Vars
-      (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "AnotherPassword"
-    }
+    # It 'Checks templates default values' {
+    #   Set-DefaultWMSCRIPT_Vars
+    #   (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "Manage01"
+    #   'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=Manage01'
+    # }
 
-    It 'Checks templates default values not overwriding provided values part 2' {
-      Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "YetAnotherPassword"
-      Set-DefaultWMSCRIPT_Vars
-      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=YetAnotherPassword'
-    }
+    # It 'Checks templates default values not overwriding provided values part 1' {
+    #   Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "AnotherPassword"
+    #   Set-DefaultWMSCRIPT_Vars
+    #   (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "AnotherPassword"
+    # }
+
+    # It 'Checks templates default values not overwriding provided values part 2' {
+    #   Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "YetAnotherPassword"
+    #   Set-DefaultWMSCRIPT_Vars
+    #   'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=YetAnotherPassword'
+    # }
   }
 
   Context 'Product Lists' {

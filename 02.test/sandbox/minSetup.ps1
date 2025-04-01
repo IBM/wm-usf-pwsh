@@ -58,4 +58,6 @@ ${installHome} = "C:\webMethods"
 Debug-WmUifwLogI "Sandbox test -> Setting up webMethods from template ${templateId}"
 New-InstallationFromTemplate -TemplateId "${templateId}" `
   -InstallHome "${installHome}" `
-  -ProductsImagefile "${pFile}"
+  -ProductsImagefile "${pFile}" `
+  -FixesImagefile "${fFile}"
+
