@@ -1,11 +1,20 @@
 Using module "../01.code/wm-usf-audit.psm1"
+Using module "../01.code/wm-usf-result.psm1"
+Using module "../01.code/wm-usf-setup-template.psm1"
 
 Describe "Templates" {
   Context 'Fundamentals' {
-    It 'Checks base folder resolution' {
-      Get-TemplateBaseFolder "a" | Should -Be 1
-      Get-TemplateBaseFolder "DBC\1011" | Should -Be 2
-      Get-TemplateBaseFolder "DBC\1011\full" | Should -Match "DBC.1011.full"
+
+    It 'Initializes a fake template' {
+      $template = [WMUSF_SetupTemplate]::new("a\b\c")
+      $template.templateFolderExists | Should -Be 'false'
+    }
+
+    It 'Checks a good template' {
+      $template = [WMUSF_SetupTemplate]::new("DBC\1011\full")
+      $template.templateFolderExists | Should -Be 'true'
+      $template.productsListExists | Should -Be 'true'
+      $template.installerScriptExists | Should -Be 'true'
     }
   }
   Context 'Inventory Files' {
@@ -34,12 +43,12 @@ Describe "Templates" {
 
   Context 'Product Lists' {
     It 'Gets DBC 1011 product list' {
-      $pl = Get-ProductListForTemplate "DBC\1011\full" 
+      $template = [WMUSF_SetupTemplate]::new("DBC\1011\full")
+      $pl = $template.GetProductList()
       $pl | Should -Not -Be $null
-      $pl | Should -Not -Be 2
-      $pl | Should -Not -Be ""
+      $pl.Code | Should -Be 0
       $audit = [WMUSF_Audit]::GetInstance()
-      $audit.LogD("Read product list is: $pl")
+      $audit.LogD("Read product list is: " + $pl.PayloadString)
     }
   }
 

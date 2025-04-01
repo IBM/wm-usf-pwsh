@@ -36,7 +36,7 @@ class WMUSF_Audit {
 
     $this.LogI("WMUSF Audit Subsystem initialized")
     $this.LogI("WMUSF_Audit Directory: " + $this.AuditDir)
-    $this.LogI("WMUSF_Audir Session Directory: " + $this.LogSessionDir)
+    $this.LogI("WMUSF_Audit Session Directory: " + $this.LogSessionDir)
     $this.LogI("WMUSF_Audit Debug: " + $this.debugOn)
   }
 

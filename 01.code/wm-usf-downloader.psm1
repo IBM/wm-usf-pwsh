@@ -53,7 +53,7 @@ class WMUSF_Downloader {
     # assure destination folder
     $this.audit.LogD("Eventually create folder ${fullOutputDirectoryPath}...")
     New-Item -Path ${fullOutputDirectoryPath} -ItemType Directory -Force | Out-Null
-    $fullFilePath = "${fullOutputDirectoryPath}/${fileName}"
+    $fullFilePath = ${fullOutputDirectoryPath} + [IO.Path]::DirectorySeparatorChar + ${fileName}
     # Download the file
     Invoke-WebRequest -Uri ${url} -OutFile "${fullFilePath}.verify"
   
@@ -92,7 +92,8 @@ class WMUSF_Downloader {
       $fullOutputDirectoryPath,
       $fileName,
       $expectedHash,
-      "SHA256")
+      "SHA256"
+    )
   }
 
   [WMUSF_Result] AssureWebFileWithChecksumVerification(
@@ -143,7 +144,8 @@ class WMUSF_Downloader {
 
   [WMUSF_Result] AssureDefaultInstaller(
     [string]${fullOutputDirectoryPath},
-    [string]${fileName}) {
+    [string]${fileName}
+  ) {
 
     $this.audit.LogD("Assuring default installer for Windows, parameters received: 1: ${fullOutputDirectoryPath} 2: ${fileName}")
     $r = $this.AssureWebFileWithChecksumVerification(
@@ -180,7 +182,8 @@ class WMUSF_Downloader {
 
   [WMUSF_Result] AssureDefaultCceBootstrap(
     [string]${fullOutputDirectoryPath} = $this.cacheDir,
-    [string]${fileName} = $defaultCceBootstrapFileName) {
+    [string]${fileName} = $defaultCceBootstrapFileName
+  ) {
     $this.audit.LogI("Assuring default boostrap for CCE")
     return $this.AssureWebFileWithChecksumVerification(
       [WMUSF_Downloader]::defaultCceBootstrapDownloadURL,

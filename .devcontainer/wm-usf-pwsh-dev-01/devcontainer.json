@@ -8,7 +8,7 @@
   },
   "remoteEnv": {
     "CONTAINER_WORKSPACE_FOLDER": "${containerWorkspaceFolder}",
-    "WMUSF_ARTIFACTS_CACHE_HOME": "${containerWorkspaceFolder}/09.artifacts",
+    "WMUSF_DOWNLOADER_CACHE_DIR": "${containerWorkspaceFolder}/09.artifacts",
     "WMUSF_AUDIT_DIR": "${containerWorkspaceFolder}/10.local-files/devcontainer/audit"
   },
   "name": "wm-usf-pwsh-dev-01",

@@ -2,6 +2,9 @@
 Using module "./wm-usf-audit.psm1"
 Using module "./wm-usf-result.psm1"
 Using module "./wm-usf-downloader.psm1"
+Using module "./wm-usf-setup-template.psm1"
+
+Import-Module "$PSScriptRoot/wm-usf-utils.psm1"
 
 $audit = [WMUSF_Audit]::GetInstance()
 $downloader = [WMUSF_Downloader]::GetInstance()
@@ -54,12 +57,6 @@ function Read-UserSecret() {
 
 ## Framework Error and Result Management
 
-function Invoke-EnvironmentSubstitution() {
-  param([Parameter(ValueFromPipeline)][string]$InputObject)
-
-  #Get-ChildItem Env: | Set-Variable
-  $ExecutionContext.InvokeCommand.ExpandString($InputObject)
-}
 function Invoke-WinrsAuditedCommandOnServerList {
   param (
     [Parameter(Mandatory = $true)]
@@ -102,23 +99,6 @@ function Build-ProductList() {
     [string]${InstallationProductList}
   )
   return "ProductList=" + ${InstallationProductList}.Replace([environment]::Newline, ",")
-}
-
-function Get-ProductListForTemplate() {
-  param (
-    [Parameter(Mandatory = $true)]
-    [string]${TemplateId}
-  )
-
-  ${templateFolder} = Get-TemplateBaseFolder "${TemplateId}"
-
-  ${plFile} = "${templateFolder}${PathSep}ProductsList.txt"
-  if ( -Not (Test-Path -Path ${plFile} -PathType Leaf )) {
-    $audit.LogE( "File ${plFile} does not exist")
-    return 1
-  }
-
-  return ( Get-Content ${plFile} ) -join ","
 }
 
 function Get-NewTempDir() {
@@ -254,7 +234,8 @@ function Get-ProductsImageForTemplate() {
     [Parameter(Mandatory = $true)]
     [string]${UserPassword}
   )
-  $pl = Get-ProductListForTemplate ${TemplateId}
+  $template = [WMUSF_SetupTemplate]::new(${TemplateId})
+  $pl = $template.GetProductList()
   if ($pl.Length -le 5) {
     $audit.LogE("Wrong product list: $pl")
     return 1
@@ -283,7 +264,8 @@ function Get-ProductsImageForTemplate() {
       # Potential increment: force overwwrite
     }
     else {
-      $pl = Get-ProductListForTemplate "${TemplateId}"
+      $template = [WMUSF_SetupTemplate]::new(${TemplateId})
+      $pl = $template.GetProductList()
       $su = Get-DownloadServerUrlForTemplate "${TemplateId}"
       $lines = @()
       $lines += "# Generated"
@@ -377,7 +359,9 @@ function Get-InventoryForTemplate {
     [string]${SumPlatformGroupString} = """WIN-ANY"""
   )
 
-  $lProductsCsv = Get-ProductListForTemplate ${TemplateId}
+  ${TemplateId}
+  $template = [WMUSF_SetupTemplate]::new(${TemplateId})
+  $lProductsCsv = $template.GetProductList()
   if ($lProductsCsv.Length -le 5) {
     $audit.LogE("Wrong product list: $lProductsCsv")
     return 1
@@ -681,7 +665,8 @@ function New-InstallationFromTemplate {
   $sf = Get-Content ${templateFolder}${pathSep}install.wmscript -Raw | Invoke-EnvironmentSubstitution
   $sf > "${sessionLogDir}${pathSep}install.wmscript"
 
-  $pl = Get-ProductListForTemplate "${TemplateId}"
+  $template = [WMUSF_SetupTemplate]::new(${TemplateId})
+  $pl = $template.GetProductList()
 
   Add-content "${sessionLogDir}${pathSep}install.wmscript" -value "ProductList=$pl"
   Add-content "${sessionLogDir}${pathSep}install.wmscript" `
