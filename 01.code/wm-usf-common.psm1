@@ -235,11 +235,7 @@ function Get-ProductsImageForTemplate() {
     [string]${UserPassword}
   )
   $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-  $pl = $template.GetProductList()
-  if ($pl.Length -le 5) {
-    $audit.LogE("Wrong product list: $pl")
-    return 1
-  }
+  $pl = $template.GetProductList().PayloadString
 
   if (-Not (Test-Path -Path ${BaseFolder} -PathType Container)) {
     $audit.LogW("Folder ${BaseFolder} does not exist, creating now...")
@@ -265,7 +261,7 @@ function Get-ProductsImageForTemplate() {
     }
     else {
       $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-      $pl = $template.GetProductList()
+      $pl = $template.GetProductList().PayloadString
       $su = Get-DownloadServerUrlForTemplate "${TemplateId}"
       $lines = @()
       $lines += "# Generated"
@@ -361,7 +357,7 @@ function Get-InventoryForTemplate {
 
   ${TemplateId}
   $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-  $lProductsCsv = $template.GetProductList()
+  $lProductsCsv = $template.GetProductList().PayloadString
   if ($lProductsCsv.Length -le 5) {
     $audit.LogE("Wrong product list: $lProductsCsv")
     return 1
@@ -666,7 +662,7 @@ function New-InstallationFromTemplate {
   $sf > "${sessionLogDir}${pathSep}install.wmscript"
 
   $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-  $pl = $template.GetProductList()
+  $pl = $template.GetProductList().PayloadString
 
   Add-content "${sessionLogDir}${pathSep}install.wmscript" -value "ProductList=$pl"
   Add-content "${sessionLogDir}${pathSep}install.wmscript" `

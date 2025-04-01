@@ -50,8 +50,17 @@ Describe "Templates" {
       $audit = [WMUSF_Audit]::GetInstance()
       $audit.LogD("Read product list is: " + $pl.PayloadString)
     }
+    It 'Generates payload for products image download script' {
+      $template = [WMUSF_SetupTemplate]::new("DBC\1011\full")
+      $pl = $template.GenerateProductsImageDownloadScript()
+      $pl | Should -Not -Be $null
+      $pl.Code | Should -Be 0
+      $audit = [WMUSF_Audit]::GetInstance()
+      $audit.LogD("Generated payload for products image download script is: " + $pl.PayloadString)
+    }
   }
 
+  # TODO: move
   Context 'Downloads' {
     It 'Checks the server URL for product downloading' {
       Get-DownloadServerUrlForTemplate "DBC\1011\full" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi'

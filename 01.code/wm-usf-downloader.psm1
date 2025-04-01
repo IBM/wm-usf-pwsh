@@ -193,4 +193,25 @@ class WMUSF_Downloader {
       [WMUSF_Downloader]::defaultCceBootstrapFileHashAlgorithm
     )
   }
+
+  [WMUSF_Result] GetInstallerBinary(
+  ) {
+    $this.audit.LogI("Assuring default installer binary")
+    $r = $this.AssureDefaultInstaller()
+    if ($r.Code -ne 0) {
+      $this.audit.LogE("Error assuring default installer binary")
+      return $r
+    }
+    $installerBinary = [WMUSF_Downloader]::defaultInstallerFileName
+    $installerBinaryPath = [System.IO.Path]::Combine($this.cacheDir, $installerBinary)
+    if (Test-Path -PathType Leaf -Path $installerBinaryPath) {
+      $r.Code = 0
+      $r.Description = "Installer binary found"
+      $r.PayloadString = $installerBinaryPath
+    }
+    else {
+      return [WMUSF_Result]::GetSimpleResult(1, "Installer binary not found", $this.audit)
+    }
+    return $r
+  }
 }

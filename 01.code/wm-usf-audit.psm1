@@ -76,7 +76,7 @@ class WMUSF_Audit {
     ${baseOutputFileName} = $this.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "${ts}_${AuditTag}"
 
 
-    ${fullCmd} = $Command + " 2>>""${baseOutputFileName}.err.txt"
+    ${fullCmd} = $Command + " >>""${baseOutputFileName}.out.txt"" 2>>""${baseOutputFileName}.err.txt"
     if ("/" -eq [IO.Path]::DirectorySeparatorChar) {
       ${fullCmd} += '" || echo $LastExitCode >"'
     }
@@ -89,7 +89,7 @@ class WMUSF_Audit {
     try {
       Add-Content -Path "${baseOutputFileName}.exitcode.txt" -Value "0"
       # & ${Command}
-      Invoke-Expression ${fullCmd} | Out-File -FilePath "${baseOutputFileName}.out.txt" -Append
+      Invoke-Expression ${fullCmd}
       $this.LogI("Command output: " + ${baseOutputFileName})
 
       ${exitCode} = Get-Content -Path "${baseOutputFileName}.exitcode.txt"
