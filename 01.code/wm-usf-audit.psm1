@@ -1,4 +1,6 @@
 # This class encapsulates the functionality to download binaries from webMethods download center
+Using module "./wm-usf-result.psm1"
+
 class WMUSF_Audit {
   static [WMUSF_Audit] $Instance = [WMUSF_Audit]::GetInstance()
   hidden static [WMUSF_Audit] $_instance = [WMUSF_Audit]::new()
@@ -16,7 +18,7 @@ class WMUSF_Audit {
       $this.debugOn = "1"
     }
     $tempDir = [System.IO.Path]::GetTempPath()
-    $dv = "${tempDir}" + [IO.Path]::DirectorySeparatorChar + "WMUSF_AUDIT"
+    $dv = "${tempDir}WMUSF_AUDIT"
     $this.AuditDir = $(${env:WMUSF_AUDIT_DIR} ?? "${dv}")
     Write-Host "AuditDir: " $this.AuditDir
 
@@ -43,17 +45,17 @@ class WMUSF_Audit {
 
   [void] Log([string]${msg}, [string]${sev} = "I") {
 
-    $l = $this.LogSessionDir
+    $sessionFile = $this.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "session.log"
     ${callingPoint} = $(Get-PSCallStack).SyncRoot.Get(2)
     if ($this.debugOn -eq "0") {
       ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')${sev}| ${msg}"
       Write-Host "${fs}"
-      Add-content ("${l}" + [IO.Path]::PathSeparator + "session.log") -value "$fs"
+      Add-content $sessionFile -value "$fs"
     }
     else {
       ${fs} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')${sev}| ${callingPoint} | ${msg}"
       Write-Host "${fs}"
-      Add-content ("${l}" + [IO.Path]::PathSeparator + "session.log") -value "$fs"
+      Add-content $sessionFile -value "$fs"
     }
   }
   
@@ -65,4 +67,51 @@ class WMUSF_Audit {
       $this.Log($msg, "D")
     }
   }
+
+  [WMUSF_Result] InvokeCommand([string]$Command, [string]$AuditTag) {
+    $r = [WMUSF_Result]::new()
+
+    ${ts} = Get-Date -UFormat "%s"
+    ${baseOutputFileName} = $this.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "${ts}_${AuditTag}"
+
+
+    ${fullCmd} = $Command + " 2>>""${baseOutputFileName}.err.txt"
+    if ("/" -eq [IO.Path]::DirectorySeparatorChar) {
+      ${fullCmd} += '" || echo $LastExitCode >"'
+    }
+    else {
+      ${fullCmd} += '" || echo 255 >"'
+    }
+    ${fullCmd} += "${baseOutputFileName}.exitcode.txt"
+    ${fullCmd} += '"'
+    $this.LogI("Executing command: ${fullCmd}")
+    try {
+      Add-Content -Path "${baseOutputFileName}.exitcode.txt" -Value "0"
+      # & ${Command}
+      Invoke-Expression ${fullCmd} | Out-File -FilePath "${baseOutputFileName}.out.txt" -Append
+      $this.LogI("Command output: " + ${baseOutputFileName})
+
+      ${exitCode} = Get-Content -Path "${baseOutputFileName}.exitcode.txt"
+      if ("0" -ne ${exitCode}) {
+        $this.LogE("Command finished with error code: ${exitCode}")
+        $r.Code = 1
+        $r.Description = "Error executing command: ${Command}, error code ${exitCode}"
+        $r.Errors += $r.Description
+      }
+      else {
+        $r.Code = 0
+        $r.Description = "Command execution successful"
+      }
+    }
+    catch {
+      $r.Code = 2
+      $r.Description = "Exception executing command: ${Command}"
+      $this.LogE($r.Description)
+      $this.LogE($_.Exception.Message)
+      $_ | Out-File "${baseOutputFileName}.pwsh.err.txt"
+      $_
+    }
+    return $r
+  }
+
 }

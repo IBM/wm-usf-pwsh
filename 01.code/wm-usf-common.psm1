@@ -38,15 +38,11 @@ function Set-LogSessionDir {
   Set-Variable -Name 'LogSessionDir' -Value ${NewSessionDir} -Scope Script
 }
 
-function Set-TodayLogSessionDir {
-  ${auditDir} = Get-Variable -Name 'AuditBaseDir' -Scope Script -ValueOnly
-  Set-LogSessionDir -NewSessionDir "${auditDir}${pathSep}$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%d')"
-}
-
 function Get-LogSessionDir {
   # Retrieve the module-scoped variable
   Get-Variable -Name 'LogSessionDir' -Scope Script -ValueOnly
 }
+
 function Get-WmUsfHomeDir() {
   #Get-Variable -Name 'WmUsfHomeDir' -Scope Script -ValueOnly
   #Set-Variable -Name 'WmUsfHomeDir' -Value (GetItem ${PSScriptRoot}).parent -Scope Script
@@ -72,48 +68,6 @@ function Read-UserSecret() {
 }
 
 ## Framework Error and Result Management
-class ResultObject {
-  [int]$Code
-  [string]$Description
-  [string]$PayloadString
-  [array]$Warnings
-  [array]$Messages
-  [array]$Errors
-  [array]$NestedResults
-  ResultObject() {
-    $this.Code = 1
-    $this.Description = "Initialized"
-    $this.PayloadString = ""
-    $this.Warnings = @()
-    $this.Messages = @()
-    $this.Errors = @()
-    $this.NestedResults = @()
-  }
-}
-function Get-NewResultObject {
-  $r = [ResultObject]::new()
-  return $r
-}
-
-function Get-QuickReturnObject {
-  param(
-    [Parameter(Mandatory = $false)]
-    [ResultObject]${r},
-
-    [Parameter(Mandatory = $false)]
-    [string]${Code} = 0,
-
-    [Parameter(Mandatory = $false)]
-    [string]${Description} = "Success"
-  )
-  $r.Code = $Code
-  $r.Description = $Description
-  if ($Code -ne 0) {
-    $r.Errors += $Description
-    $audit.LogE("Returning error code ${Code}, description ${Description}")
-  }
-  return $r
-}
 
 function Invoke-EnvironmentSubstitution() {
   param([Parameter(ValueFromPipeline)][string]$InputObject)
@@ -121,58 +75,6 @@ function Invoke-EnvironmentSubstitution() {
   #Get-ChildItem Env: | Set-Variable
   $ExecutionContext.InvokeCommand.ExpandString($InputObject)
 }
-
-# Haven't found a reliable way to extract the command exit code, only if it is successful or not.
-# TODO: Check if this can be done better
-function Invoke-AuditedCommand() {
-  param (
-    [Parameter(Mandatory = $true)]
-    [string]${command},
-
-    [Parameter(Mandatory = $true)]
-    [string]${tag}
-  )
-
-  ${lsd} = Get-LogSessionDir
-  #$audit.LogD("Running in POSIX environment: ${posixCmd}"
-
-  ${fullCmd} = ""
-  ${baseOutputFileName} = "${lsd}${pathSep}${tag}"
-  ${ts} = Get-Date -UFormat "%s" 
-  ${fullCmd} = ${command}
-  ${fullCmd} += ' >>"' 
-  ${fullCmd} += "${baseOutputFileName}.out.txt"
-  ${fullCmd} += '" 2>>"'
-  ${fullCmd} += "${baseOutputFileName}.err.txt"
-  if (${posixCmd}) {
-    ${fullCmd} += '" || echo $LastExitCode >"'
-  }
-  else {
-    # TODO: Find out how to capture the real exit code in Windows
-    ${fullCmd} += '" || echo 255 >"'
-  }
-  ${fullCmd} += "${baseOutputFileName}.exitcode.${ts}.txt"
-  ${fullCmd} += '"'
-
-  Add-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt" -Value "0"
-  $audit.LogD( "Executing Command:")
-
-  $audit.LogD( "${fullCmd}")
-
-  try {
-    Invoke-Expression "${fullCmd}"
-  }
-  catch {
-    $audit.LogE( "Error caught while executing audited command with tag ${tag}")
-    $_ | Out-File "${baseOutputFileName}.pwsh.err.txt"
-    $_
-  }
-  ${exitCode} = Get-Content -Path "${baseOutputFileName}.exitcode.${ts}.txt"
-
-  $audit.LogD( "Command exited with code ${exitCode}")
-  return ${exitCode} 
-}
-
 function Invoke-WinrsAuditedCommandOnServerList {
   param (
     [Parameter(Mandatory = $true)]
@@ -191,7 +93,7 @@ function Invoke-WinrsAuditedCommandOnServerList {
     ${active} = Invoke-Expression "winrs -r:$_ ""echo 0"" || echo 254" 
     if (${active} -eq "0") {
       $audit.LogI( "Invoking command having tag ${tag} on server $_ ...")
-      Invoke-AuditedCommand "winrs -r:$_ ${command}" "${tag}_$_"
+      $audit.InvokeCommand("winrs -r:$_ ${command}", "${tag}_$_")
     }
     else {
       $audit.LogE( "Server $_ not active!")
@@ -577,7 +479,7 @@ function Get-ProductsImageForTemplate() {
     $audit.LogI("Executing the following image creation command:")
     $audit.LogI("$cmd ***")
     $cmd += """${UserPassword}"""
-    Invoke-AuditedCommand "$cmd" "CreateProductsZip"
+    $audit.InvokeCommand("$cmd", "CreateProductsZip")
   }
 }
 
@@ -630,7 +532,7 @@ function New-BootstrapUpdMgr {
       }
       $audit.LogI("Bootstrapping UpdateManager with the following command")
       $audit.LogI("$cmd")
-      Invoke-AuditedCommand "$cmd" "BootstrapUpdMgr"
+      $audit.InvokeCommand("$cmd", "BootstrapUpdMgr")
       Pop-Location
     }
     Remove-Item "${tempFolder}" -Force -Recurse
@@ -775,7 +677,7 @@ function Get-FixesImageForTemplate {
     $audit.LogI("Executing audited command:")
     $audit.LogI("$cmd ***")
     $cmd += """${UserPassword}"""
-    Invoke-AuditedCommand "$cmd" "ComputeFixesImage"
+    $audit.InvokeCommand("$cmd", "ComputeFixesImage")
     Pop-Location
   }
 }
@@ -897,7 +799,7 @@ function Install-FixesForUpdateManager () {
   Push-Location .
   Set-Location "${UpdMgrHome}/bin"
   $cmd = ".${pathSep}UpdateManagerCMD.bat -selfUpdate true -installFromImage ""${FixesImagefile}"""
-  Invoke-AuditedCommand "$cmd" "UpdMgrPatchFromImage"
+  $audit.InvokeCommand("$cmd", "UpdMgrPatchFromImage")
   Pop-Location
   $r.Code = 0
   $r.Description = "Done"
@@ -972,7 +874,7 @@ function New-InstallationFromTemplate {
   $audit.LogI("Command to execute is")
   $audit.LogI("$cmd")
 
-  Invoke-AuditedCommand "$cmd" "Install"
+  $audit.InvokeCommand("$cmd", "01.InstallProducts")
 
   if ("N/A" -eq ${FixesImagefile}) {
     $audit.LogI("Skipping fixes installation, image not provided")
