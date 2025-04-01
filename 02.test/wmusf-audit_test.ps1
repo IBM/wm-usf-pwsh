@@ -1,3 +1,5 @@
+Using module "../01.code/wm-usf-audit.psm1"
+
 Context 'Audit' {
   Describe 'WMUSF_Audit' {
     It 'should have a static instance' {

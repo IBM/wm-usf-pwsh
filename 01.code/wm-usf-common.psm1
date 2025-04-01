@@ -12,21 +12,6 @@ ${pathSep} = [IO.Path]::DirectorySeparatorChar
 ${sysTemp} = ${env:TEMP} ?? '/tmp'
 ${posixCmd} = (${pathSep} -eq '/') ? $true : $false
 
-# Context constants
-${defaultInstallerDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SoftwareAGInstaller20240626-w64.exe"
-${defaultInstallerFileName} = "SoftwareAGInstaller20240626-w64.exe"
-${defaultInstallerFileHash} = "cdfff7e2f420d182a4741d90e4ee02eb347db28bdaa4969caca0a3ac1146acd3"
-${defaultInstallerFileHashAlgorithm} = "SHA256"
-
-${defaultWmumBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
-${defaultWmumBootstrapFileName} = "SAGUpdateManagerInstaller-windows-x64-11.0.0.0000-0823.exe"
-${defaultWmumBootstrapFileHash} = "53d283ba083a3535dd12831aa05ab0e8a590ff577053ab9eebedabe5a499fbfa"
-${defaultWmumBootstrapFileHashAlgorithm} = "SHA256"
-
-${defaultCceBootstrapDownloadURL} = "https://empowersdc.softwareag.com/ccinstallers/cc-def-10.15-fix8-w64.bat"
-${defaultCceBootstrapFileName} = "cc-def-10.15-fix8-w64.bat"
-${defaultCceBootstrapFileHash} = "728488F53CFD54B5835205F960C6501FE96B14408529EAA048441BA711B8F614"
-${defaultCceBootstrapFileHashAlgorithm} = "SHA256"
 
 #################### Auditing & the folders castle
 # All executions are producing logs in the audit folder
@@ -192,114 +177,6 @@ function Resolve-WmusfDirectory {
 }
 
 ########### Assets Assurance
-
-function Resolve-WebFileWithChecksumVerification {
-  param (
-    # Where to download from
-    [Parameter(Mandatory = $true)]
-    [string]$url,
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = $(Get-TempSessionDir),
-
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]${fileName} = "file.bin",
-    # Hash to be checked
-    [Parameter(Mandatory = $true)]
-    [string]${expectedHash},
-
-    # Hash to be checked
-    [Parameter(Mandatory = $false)]
-    [string]${hashAlgorithm} = "SHA256"
-  )
-
-  # Calculate the SHA256 hash of the downloaded file
-  $fullFilePath = "${fullOutputDirectoryPath}${pathSep}${fileName}"
-  $audit.LogI("Resolving file $fullFilePath ...")
-
-  # if File exists, just check the checksum
-  if (Test-Path $fullFilePath -PathType Leaf) {
-    $audit.LogD("file $fullFilePath already exists.")
-    $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgorithm
-    $audit.LogD("its hash is " + $fileHash.Hash)
-    if ($fileHash.Hash -eq $expectedHash) {
-      $audit.LogD("The file's $hashAlgorithm hash matches the expected hash.")
-      return $true
-    }
-    else {
-      $audit.LogE("The $fullFilePath file's $hashAlgorithm hash does not match the expected hash. Downloaded file renamed")
-      $audit.LogE("Got " + ${fileHash}.Hash + ", but expected $expectedHash!")
-      return $false
-    }
-  }
-  $audit.LogD("file $fullFilePath does not exist. Attempting to download...")
-  $r = $downloader.GetWebFileWithChecksumVerification(
-    "$url",
-    "$fullOutputDirectoryPath",
-    "$fileName",
-    "$expectedHash",
-    "$hashAlgorithm"
-  )
-  
-  $audit.LogD("Resolve-WebFileWithChecksumVerification returns $r")
-  return $r
-}
-
-function Resolve-DefaultInstaller() {
-  param (
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = (Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME'),
-
-    [Parameter(Mandatory = $false)]
-    [string]${fileName} = ${defaultInstallerFileName}
-  )
-
-  Resolve-WebFileWithChecksumVerification `
-    -url ${defaultInstallerDownloadURL} `
-    -expectedHash ${defaultInstallerFileHash} `
-    -hashAlgorithm ${defaultInstallerFileHashAlgorithm} `
-    -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
-    -fileName ${fileName}
-}
-
-function Resolve-DefaultUpdateManagerBootstrap() {
-  param (
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = (Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') ,
-
-    [Parameter(Mandatory = $false)]
-    [string]${fileName} = ${defaultWmumBootstrapFileName}
-  )
-
-  Resolve-WebFileWithChecksumVerification `
-    -url ${defaultWmumBootstrapDownloadURL} `
-    -expectedHash ${defaultWmumBootstrapFileHash} `
-    -hashAlgorithm ${defaultWmumBootstrapFileHashAlgorithm} `
-    -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
-    -fileName ${fileName}
-}
-
-function Resolve-DefaultCceBootstrap() {
-  param (
-    # where to save the file 
-    [Parameter(Mandatory = $false)]
-    [string]${fullOutputDirectoryPath} = (Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME'),
-
-    [Parameter(Mandatory = $false)]
-    [string]${fileName} = ${defaultCceBootstrapFileName}
-  )
-
-  Resolve-WebFileWithChecksumVerification `
-    -url ${defaultCceBootstrapDownloadURL} `
-    -expectedHash ${defaultCceBootstrapFileHash} `
-    -hashAlgorithm ${defaultCceBootstrapFileHashAlgorithm} `
-    -fullOutputDirectoryPath ${fullOutputDirectoryPath} `
-    -fileName ${fileName}
-}
 
 function Get-CheckSumsForAllFilesInFolder {
   param (

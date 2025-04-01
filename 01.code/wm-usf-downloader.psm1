@@ -5,6 +5,7 @@ class WMUSF_Downloader {
   static [WMUSF_Downloader] $Instance = [WMUSF_Downloader]::GetInstance()
   hidden static [WMUSF_Downloader] $_instance = [WMUSF_Downloader]::new()
   hidden [WMUSF_Audit] $audit
+  hidden [string] $cacheDir
 
   # Download constants
   #TODO check if Set-Variable test -Option Constant -Value 100 approach is better
@@ -27,6 +28,9 @@ class WMUSF_Downloader {
 
   hidden WMUSF_Downloader() {
     $this.audit = [WMUSF_Audit]::GetInstance()
+    $this.cacheDir = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
+    $this.audit.LogI("WMUSF_Downloader initialized")
+    $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
   }
 
   hidden static [WMUSF_Downloader] GetInstance() {
@@ -34,13 +38,16 @@ class WMUSF_Downloader {
   }
 
   [WMUSF_Result] GetWebFileWithChecksumVerification(
-    [string]$url, [string]$fileName, 
-    [string]$expectedHash, [string]$hashAlgorithm = "SHA256", 
-    [string]$fullOutputDirectoryPath = $null) {
+    [string]$url,
+    [string]$fullOutputDirectoryPath,
+    [string]$fileName,
+    [string]$expectedHash,
+    [string]$hashAlgorithm
+  ) {
 
     $r = [WMUSF_Result]::new()
     
-    $this.audit.LogI("Downloading file ${fullOutputDirectoryPath}/${fileName}")
+    $this.audit.LogI("Downloading file ${fullOutputDirectoryPath}" + [IO.Path]::DirectorySeparatorChar + "${fileName}")
     $this.audit.LogI("From ${url}")
     
     # assure destination folder
@@ -58,7 +65,7 @@ class WMUSF_Downloader {
     # Compare the calculated hash with the expected hash
     $r.Code = 1
     if (${fileHash}.Hash -eq ${expectedHash}) {
-      $this.audit.LogI("The file's $hashAlgorithm hash matches the expected hash.")
+      $this.audit.LogD("The file's $hashAlgorithm hash matches the expected hash.")
       $this.audit.LogD("Renaming ${fullFilePath}.verify to ${fullFilePath}")
       Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
       $r.Code = 0
@@ -75,17 +82,30 @@ class WMUSF_Downloader {
   }
 
   [WMUSF_Result] AssureWebFileWithChecksumVerification(
-    [string]$url, [string]$fullOutputDirectoryPath = [System.IO.Path]::GetTempPath(),
+    [string]$url,
+    [string]$fullOutputDirectoryPath,
     [string]$fileName,
-    [string]$expectedHash, [string]$hashAlgorithm = "SHA256"
+    [string]$expectedHash
+  ) {
+    return $this.AssureWebFileWithChecksumVerification(
+      $url,
+      $fullOutputDirectoryPath,
+      $fileName,
+      $expectedHash,
+      "SHA256")
+  }
+
+  [WMUSF_Result] AssureWebFileWithChecksumVerification(
+    [string]$url,
+    [string]$fullOutputDirectoryPath,
+    [string]$fileName,
+    [string]$expectedHash,
+    [string]$hashAlgorithm
   ) {
 
     $r = [WMUSF_Result]::new()
     # Calculate the SHA256 hash of the downloaded file
     $fullFilePath = ${fullOutputDirectoryPath} + [IO.Path]::DirectorySeparatorChar + ${fileName}
-    $fullFilePath = $fullFilePath -replace `
-    ([IO.Path]::DirectorySeparatorChar + [IO.Path]::DirectorySeparatorChar), `
-      [IO.Path]::DirectorySeparatorChar
     $this.audit.LogI("Resolving file $fullFilePath ...")
 
     # if File exists, just check the checksum
@@ -94,7 +114,7 @@ class WMUSF_Downloader {
       $fileHash = Get-FileHash -Path $fullFilePath -Algorithm $hashAlgorithm
       $this.audit.LogD("its hash is " + $fileHash.Hash)
       if ($fileHash.Hash -eq $expectedHash) {
-        $this.audit.LogD("The file's $hashAlgorithm hash matches the expected hash.")
+        $this.audit.LogI("The file's $hashAlgorithm hash matches the expected hash.")
         return [WMUSF_Result]::GetSuccessResult()
       }
       else {
@@ -114,5 +134,60 @@ class WMUSF_Downloader {
   
     $this.audit.LogD("Resolve-WebFileWithChecksumVerification returns " + $r.Code)
     return $r
+  }
+
+  [WMUSF_Result] AssureDefaultInstaller() {
+    $this.audit.LogD("Assuring default installer for Windows, no parameters received")
+    return $this.AssureDefaultInstaller($this.cacheDir, [WMUSF_Downloader]::defaultInstallerFileName)
+  }
+
+  [WMUSF_Result] AssureDefaultInstaller(
+    [string]${fullOutputDirectoryPath},
+    [string]${fileName}) {
+
+    $this.audit.LogD("Assuring default installer for Windows, parameters received: 1: ${fullOutputDirectoryPath} 2: ${fileName}")
+    $r = $this.AssureWebFileWithChecksumVerification(
+      [WMUSF_Downloader]::defaultInstallerDownloadURL,
+      ${fullOutputDirectoryPath},
+      ${fileName},
+      [WMUSF_Downloader]::defaultInstallerFileHash,
+      [WMUSF_Downloader]::defaultInstallerFileHashAlgorithm
+    )
+    $this.audit.LogD("AssureDefaultInstaller returns " + $r.Code)
+    return $r
+  }
+
+  [WMUSF_Result] AssureDefaultUpdateManagerBootstrap() {
+    return $this.AssureDefaultUpdateManagerBootstrap($this.cacheDir, [WMUSF_Downloader]::defaultWmumBootstrapFileName)
+  }
+
+  [WMUSF_Result] AssureDefaultUpdateManagerBootstrap(
+    [string]${fullOutputDirectoryPath} = $this.cacheDir,
+    [string]${fileName} = $defaultCceBootstrapFileName) {
+    $this.audit.LogI("Assuring default boostrap for Update Manager")
+    return $this.AssureWebFileWithChecksumVerification(
+      [WMUSF_Downloader]::defaultWmumBootstrapDownloadURL,
+      ${fullOutputDirectoryPath},
+      ${fileName},
+      [WMUSF_Downloader]::defaultWmumBootstrapFileHash,
+      [WMUSF_Downloader]::defaultWmumBootstrapFileHashAlgorithm
+    )
+  }
+
+  [WMUSF_Result] AssureDefaultCceBootstrap() {
+    return $this.AssureDefaultCceBootstrap($this.cacheDir, [WMUSF_Downloader]::defaultCceBootstrapFileName)
+  }
+
+  [WMUSF_Result] AssureDefaultCceBootstrap(
+    [string]${fullOutputDirectoryPath} = $this.cacheDir,
+    [string]${fileName} = $defaultCceBootstrapFileName) {
+    $this.audit.LogI("Assuring default boostrap for CCE")
+    return $this.AssureWebFileWithChecksumVerification(
+      [WMUSF_Downloader]::defaultCceBootstrapDownloadURL,
+      ${fullOutputDirectoryPath},
+      ${fileName},
+      [WMUSF_Downloader]::defaultCceBootstrapFileHash,
+      [WMUSF_Downloader]::defaultCceBootstrapFileHashAlgorithm
+    )
   }
 }

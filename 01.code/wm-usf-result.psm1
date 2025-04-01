@@ -17,14 +17,14 @@ class WMUSF_Result {
     $this.NestedResults = @()
   }
 
-  [WMUSF_Result] GetSuccessResult() {
+  static [WMUSF_Result] GetSuccessResult() {
     $r = [WMUSF_Result]::new()
     $r.Code = 0
     $r.Description = "Success"
     return $r
   }
 
-  [WMUSF_Result] GetSimpleResult([string]$Code, [string]$Description, $audit) {
+  static [WMUSF_Result] GetSimpleResult([string]$Code, [string]$Description, $audit) {
     $r = [WMUSF_Result]::new()
     $r.Code = $Code
     $r.Description = $Code

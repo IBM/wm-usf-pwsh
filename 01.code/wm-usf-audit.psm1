@@ -18,6 +18,7 @@ class WMUSF_Audit {
       $this.debugOn = "1"
     }
     $tempDir = [System.IO.Path]::GetTempPath()
+    $tempDir = $tempDir.Substring(0, $tempDir.Length - 1)
     $dv = "${tempDir}WMUSF_AUDIT"
     $this.AuditDir = $(${env:WMUSF_AUDIT_DIR} ?? "${dv}")
     Write-Host "AuditDir: " $this.AuditDir
@@ -34,9 +35,9 @@ class WMUSF_Audit {
     Write-Host "WMUSF_AUDIT_DEBUG: " $this.debugOn
 
     $this.LogI("WMUSF Audit Subsystem initialized")
-    $this.LogI("WMUSF_AUDIT_DIR:" + $this.AuditDir)
-    $this.LogI("WMUSF_LOG_SESSION_DIR:" + $this.LogSessionDir)
-    $this.LogI("WMUSF_AUDIT_DEBUG:" + $this.debugOn)
+    $this.LogI("WMUSF_Audit Directory: " + $this.AuditDir)
+    $this.LogI("WMUSF_Audir Session Directory: " + $this.LogSessionDir)
+    $this.LogI("WMUSF_Audit Debug: " + $this.debugOn)
   }
 
   hidden static [WMUSF_Audit] GetInstance() {
