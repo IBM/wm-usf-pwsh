@@ -130,6 +130,18 @@ function Read-UserSecret() {
   $x
 }
 
+function Get-NewResultObject {
+
+  $r = New-Object PSObject -Property @{
+    Code        = 1
+    Description = "Initialized"
+    Warnings    = @()
+    Messages    = @()
+    Errors      = @()
+  }
+  return $r
+}
+
 function Invoke-EnvironmentSubstitution() {
   param([Parameter(ValueFromPipeline)][string]$InputObject)
 

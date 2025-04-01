@@ -49,6 +49,15 @@ Describe "Basics" {
 
   }
 
+  Context 'Execution' {
+    It 'Checks fundamental result object' {
+      $ro = Get-NewResultObject
+      $ro | Should -Not -Be $null
+      $ro.Code | Should -Be 1
+    }
+
+  }
+
   Context 'Checksums' {
     It 'Checks folder contents checksums' {
       ${pathSep} = [IO.Path]::DirectorySeparatorChar
