@@ -168,4 +168,19 @@ class WMUSF_SetupTemplate {
     }
     return $r
   }
+
+  [WMUSF_Result] AssureImagesZipFiles() {
+    $r = [WMUSF_Result]::new()
+    $r1 = $this.AssureImagesZipFiles()
+    if ($r1.Code -ne 0) {
+      $r.Description = "Images zip files cannot be assured, exitting with error"
+      $r.Code = 1
+      $r.NestedResults += $r1
+      return $r
+    }
+    else {
+      $this.audit.LogI("Images zip files assured, continuing with the fixes zip file")
+    }
+    return $r
+  }
 }

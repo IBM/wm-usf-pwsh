@@ -1,19 +1,46 @@
-Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1" -Force || exit 1
+Using module "/../../01.code/wm-usf-audit.psm1"
+Using module "/../../01.code/wm-usf-downloader.psm1"
+Using module "/../../01.code/wm-usf-setup-template.psm1"
+Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
 
-Debug-WmUifwLogI "Sandbox test -> Resolving Default Update Manager Bootstrap binary"
-Resolve-DefaultUpdateManagerBootstrap
+$audit = [WMUSF_Audit]::GetInstance()
+$downloader = [WMUSF_Downloader]::GetInstance()
 
-Debug-WmUifwLogI "Sandbox test -> Bootstrapping Update Manager"
+$audit.LogI( "Sandbox test -> Resolving Default Update Manager Bootstrap binary")
+$r1 = $downloader.ResolveDefaultUpdateManagerBootstrap
+
+if ($r1.Code -ne 0) {
+  $audit.LogE("Sandbox test -> Unable to resolve Update Manager bootstrap binary")
+  exit 1
+}
+
+$audit.LogI("Sandbox test -> Bootstrapping Update Manager")
 New-BootstrapUpdMgr
 
-Debug-WmUifwLogI "Sandbox test -> Resolving Default Installer binary"
-Resolve-DefaultInstaller
+$audit.LogI("Sandbox test -> Resolving Default Installer binary")
+$r3 = $downloader.ResolveDefaultInstallerBootstrap
+
+if ($r3.Code -ne 0) {
+  $audit.LogE("Sandbox test -> Unable to resolve Installer binary")
+  exit 3
+}
 
 if ("${env:WMUSF_SBX_STARTUP_TEMPLATE}" -ne "" ) {
-  Debug-WmUifwLogI "System received the following template to be automatically set up: WMUSF_SBX_STARTUP_TEMPLATE=${env:WMUSF_SBX_STARTUP_TEMPLATE}"
+  $audit.LogI("System received the following template to be automatically set up: WMUSF_SBX_STARTUP_TEMPLATE=${env:WMUSF_SBX_STARTUP_TEMPLATE}")
+}
+else {
+  $audit.LogI("System did not receive any template to be automatically set up, exiting")
+  exit 0
 }
 
 ${templateId} = "${env:WMUSF_SBX_STARTUP_TEMPLATE}"
+$template = [WMUSF_Template]::New(${env:WMUSF_SBX_STARTUP_TEMPLATE})
+$r4 = ${templateId}.AssureImagesZipFiles
+if ( $r4.Code -ne 0) {
+  $audit.LogE("Sandbox test -> Unable to resolve template images zip files")
+  exit 4
+}
+
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 
 ${artifactsFolder} = ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + 'images')
@@ -24,28 +51,28 @@ ${fFile} = "${artifactsFolder}\fixes\${currentDay}\${templateId}\fixes.zip".Repl
 ${credentialsNeeded} = $false
 
 if (Test-Path -Path ${pFile} -PathType Leaf) {
-  Debug-WmUifwLogI "Products file already exist"
+  $audit.LogI("Products file already exist")
   if (-Not (Test-Path -Path ${fFile} -PathType Leaf)) {
-    Debug-WmUifwLogI "Fixes file does not exist: ${fFile}"
+    $audit.LogI( "Fixes file does not exist: ${fFile}")
     ${credentialsNeeded} = $true
   }
 }
 else {
-  Debug-WmUifwLogI "Products file does not exist: ${pFile}"
+  $audit.LogI("Products file does not exist: ${pFile}")
   ${credentialsNeeded} = $true
 }
 
 ${user} = "N/A"
 ${pass} = "N/A"
 if ( ${credentialsNeeded} ) {
-  Debug-WmUifwLogI "At least one image for database configurator setup is missing."
-  Debug-WmUifwLogI "Provide download center username and password interactively or via the dedicated environment variables WMUSF_SBX_WM_DOWNLOAD_USER and WMUSF_SBX_WM_DOWNLOAD_PASS."
+  $audit.LogI("At least one image for database configurator setup is missing.")
+  $audit.LogI("Provide download center username and password interactively or via the dedicated environment variables WMUSF_SBX_WM_DOWNLOAD_USER and WMUSF_SBX_WM_DOWNLOAD_PASS.")
   $user = ${env:WMUSF_SBX_WM_DOWNLOAD_USER} ?? (Read-Host "User for download")
-  Debug-WmUifwLogI "Considering download user $user"
+  $audit.LogI("Considering download user $user")
   ${pass} = ${env:WMUSF_SBX_WM_DOWNLOAD_PASS} ?? (Read-UserSecret "User password for download")
 }
 
-Debug-WmUifwLogI "Sandbox test -> Resolving DBC template binaries"
+$audit.LogI("Sandbox test -> Resolving DBC template binaries")
 Get-ProductsImageForTemplate -TemplateId "${templateId}" `
   -BaseFolder "${artifactsFolder}" -UserName "${user}" -UserPassword "${pass}"
 
@@ -55,7 +82,7 @@ Get-FixesImageForTemplate -TemplateId "${templateId}" `
 ## Still WIP: set up template. First run the variables setup from the folder test folder
 
 ${installHome} = "C:\webMethods"
-Debug-WmUifwLogI "Sandbox test -> Setting up webMethods from template ${templateId}"
+$audit.LogI("Sandbox test -> Setting up webMethods from template ${templateId}")
 New-InstallationFromTemplate -TemplateId "${templateId}" `
   -InstallHome "${installHome}" `
   -ProductsImagefile "${pFile}" `
