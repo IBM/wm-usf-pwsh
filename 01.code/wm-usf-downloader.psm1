@@ -226,6 +226,7 @@ class WMUSF_Downloader {
   }
 
   [WMUSF_Result] AssureUpdateManagerInstallation() {
+    $this.audit.LogI("Assuring default Update Manager installation")
     $r = [WMUSF_Result]::new()
     $r1 = $this.AssureDefaultUpdateManagerBootstrap()
     if ($r1.Code -ne 0) {
@@ -234,14 +235,26 @@ class WMUSF_Downloader {
       $r.Description = "Error assuring default Update Manager bootstrap binary"
       $r.NestedResults = $r1
     }
+    $r.Messages += "Update Manager bootstrap binary found: " + $r1.PayloadString
+    $r.PayloadString = $r1.PayloadString
+    $this.audit.LogI($r.Description)
+    $r2 = $this.BootstrapUpdateManager($r1.PayloadString)
+    if ( $r2.Code -ne 0) {
+      $this.audit.LogE("Error bootstrapping Update Manager")
+      $r.Code = 2
+      $r.Description = "Error bootstrapping Update Manager: " + $r2.Description
+      $r.NestedResults = $r2
+    }
     $r.Code = 0
-    $r.Description = "Update Manager bootstrap binary found"
+    $r.Description = "Update Manager setup OK"
     return $r
   }
 
   [WMUSF_Result] BootstrapUpdateManager() {
+    return [WMUSF_Result]::GetSimpleResult(2, "BootstrapUpdateManager not implemented", $this.audit)
+  }
 
-
+  [WMUSF_Result] BootstrapUpdateManager([string]$BootStrapBinaryFile) {
     $r = [WMUSF_Result]::new()
 
     if (Test-Path ($this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin') -PathType Container) {
@@ -262,7 +275,7 @@ class WMUSF_Downloader {
     $this.audit.LogI("Using temporary folder ${tempFolder} for Update Manager Bootstrap")
 
     New-Item -Path ${tempFolder} -ItemType Container
-    Expand-Archive -Path $this. -DestinationPath "${tempFolder}"
+    Expand-Archive -Path $BootStrapBinaryFile -DestinationPath "${tempFolder}"
     if (-Not (Test-Path ("${tempFolder}" + [IO.Path]::DirectorySeparatorChar + "sum-setup.bat") -PathType Leaf)) {
       $r.Code = 2
       $r.Description = "Wrong archive, it does not contain the file sum-setup.bat"

@@ -1,21 +1,22 @@
 Using module "../../01.code/wm-usf-audit.psm1"
 Using module "../../01.code/wm-usf-downloader.psm1"
 Using module "../../01.code/wm-usf-setup-template.psm1"
-Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
+Using module "../../01.code/wm-usf-result.psm1"
 
 $audit = [WMUSF_Audit]::GetInstance()
 $downloader = [WMUSF_Downloader]::GetInstance()
 
 $audit.LogI( "Sandbox test -> Resolving Update Manage Installation")
-$r1 = $downloader.AssureUpdateManagerInstallation
+$r1 = $downloader.AssureUpdateManagerInstallation()
 
 if ($r1.Code -ne 0) {
-  $audit.LogE("Sandbox test -> Unable to resolve Update Manager installation")
+  $audit.LogE("Sandbox test -> Unable to resolve Update Manager installation: " + $r1.Code)
+  $r1
   exit 1
 }
 
 $audit.LogI("Sandbox test -> Resolving Default Installer binary")
-$r3 = $downloader.AssureDefaultInstaller
+$r3 = $downloader.AssureDefaultInstaller()
 
 if ($r3.Code -ne 0) {
   $audit.LogE("Sandbox test -> Unable to resolve Installer binary")
@@ -29,6 +30,8 @@ else {
   $audit.LogI("System did not receive any template to be automatically set up, exiting")
   exit 0
 }
+
+Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
 
 ${templateId} = "${env:WMUSF_SBX_STARTUP_TEMPLATE}"
 $template = [WMUSF_Template]::New(${env:WMUSF_SBX_STARTUP_TEMPLATE})
