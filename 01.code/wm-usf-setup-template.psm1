@@ -337,7 +337,6 @@ class WMUSF_SetupTemplate {
     $this.latestFixesFolder = $this.todayFixesFolder
     $this.latestFixesZipLocation = $this.todayFixesZipLocation
 
-    $this.audit.LogD("Debug todayFixesFolder = " + $this.todayFixesFolder)
     $r2 = $this.GenerateFixDownloadScriptFile($this.todayFixesFolder)
     if ($r2.Code -ne 0) {
       $r.Description = "Today's fixes download script file cannot be generated, exiting with error"
@@ -381,12 +380,21 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] AssureFixesZipFile() {
+    $this.audit.LogD("Assuring fixes zip file for template " + $this.id)
     $r = [WMUSF_Result]::new()
     $r1 = $this.ResolveFixesFoldersNames()
-    if ($r1.Code -ne 0) {
-      $r.Description = "Fixes zip folders cannot be resolved, exiting with error"
+    if ( $r1.Code -ne 0) {
+      $r.Description = "Fixes folders names cannot be resolved, exiting with error"
       $r.Code = 1
       $r.NestedResults += $r1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    $r2 = $this.AssureImagesZipFiles()
+    if ($r2.Code -ne 0) {
+      $r.Description = "Fixes zip folders cannot be resolved, exiting with error"
+      $r.Code = 2
+      $r.NestedResults += $r2
       $this.audit.LogE($r.Description)
       return $r
     }
@@ -417,7 +425,7 @@ class WMUSF_SetupTemplate {
     $r2 = $this.DownloadTodayFixes()
     if ($r2.Code -ne 0) {
       $r.Description = "Today's fixes zip file cannot be downloaded, exiting with error"
-      $r.Code = 2
+      $r.Code = 3
       $r.NestedResults += $r2
       $this.audit.LogE($r.Description)
       return $r
@@ -467,6 +475,7 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] AssureImagesZipFiles() {
+    $this.audit.LogD("Assuring images zip files for template " + $this.id)
     $r = [WMUSF_Result]::new()
     $r1 = $this.AssureProductsZipFile()
     if ($r1.Code -ne 0) {
@@ -476,17 +485,17 @@ class WMUSF_SetupTemplate {
       $r.NestedResults += $r1
       return $r
     }
-    else {
-      $this.audit.LogI("Images zip files assured, continuing with the fixes zip file")
-      $r2 = $this.AssureFixesZipFile()
-      if ($r2.Code -ne 0) {
-        $r.Description = "Fixes zip file cannot be assured, exiting with error"
-        $this.audit.LogE($r.Description)
-        $r.Code = 2
-        $r.NestedResults += $r2
-        return $r
-      }
+
+    $this.audit.LogI("Images zip files assured, continuing with the fixes zip file")
+    $r2 = $this.AssureFixesZipFile()
+    if ($r2.Code -ne 0) {
+      $r.Description = "Fixes zip file cannot be assured, exiting with error"
+      $this.audit.LogE($r.Description)
+      $r.Code = 2
+      $r.NestedResults += $r2
+      return $r
     }
+
     return $r
   }
 }
