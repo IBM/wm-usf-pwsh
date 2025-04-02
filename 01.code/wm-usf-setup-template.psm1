@@ -278,12 +278,21 @@ class WMUSF_SetupTemplate {
     $r1 = $this.AssureProductsZipFile()
     if ($r1.Code -ne 0) {
       $r.Description = "Images zip files cannot be assured, exitting with error"
+      $this.audit.LogE($r.Description)
       $r.Code = 1
       $r.NestedResults += $r1
       return $r
     }
     else {
       $this.audit.LogI("Images zip files assured, continuing with the fixes zip file")
+      $r2 = $this.AssureFixesZipFile()
+      if ($r2.Code -ne 0) {
+        $r.Description = "Fixes zip file cannot be assured, exiting with error"
+        $this.audit.LogE($r.Description)
+        $r.Code = 2
+        $r.NestedResults += $r2
+        return $r
+      }
     }
     return $r
   }
