@@ -288,7 +288,7 @@ class WMUSF_SetupTemplate {
       return $r
     }
     $this.audit.LogI("Today's inventory file generated successfully in " + $r1.PayloadString)
-    $this.audit.LogI("Downloading today's fixes zip file... WIP")
+    $this.audit.LogI("Downloading today's fixes zip file...")
 
     $this.latestFixesFolder = $this.todayFixesFolder
     $this.latestFixesZipLocation = $this.todayFixesZipLocation

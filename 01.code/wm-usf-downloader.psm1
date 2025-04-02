@@ -8,6 +8,8 @@ class WMUSF_Downloader {
   hidden [string] $cacheDir
   [string] $updateManagerHome
   [string] $onlineMode
+  [string] $currentInstallerBinary
+  [string] $currentUpdateManagerBootstrapBinary
 
   # Download constants
   #TODO check if Set-Variable test -Option Constant -Value 100 approach is better
@@ -37,6 +39,7 @@ class WMUSF_Downloader {
     $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
     $this.audit.LogI("WMUSF_Downloader Update Manager Home: " + $this.updateManagerHome)
   }
+
 
   hidden static [WMUSF_Downloader] GetInstance() {
     return [WMUSF_Downloader]::_instance
@@ -166,25 +169,37 @@ class WMUSF_Downloader {
       [WMUSF_Downloader]::defaultInstallerFileHashAlgorithm
     )
     $this.audit.LogD("AssureDefaultInstaller returns " + $r.Code)
+    if ($r.Code -eq 0) {
+      $this.currentInstallerBinary = $r.PayloadString
+      $this.audit.LogI("Installer binary found: " + $this.currentInstallerBinary)
+    }
+    else {
+      $this.audit.LogE("Error assuring default installer binary")
+    }
     return $r
   }
+
 
   [WMUSF_Result] AssureDefaultUpdateManagerBootstrap() {
     return $this.AssureDefaultUpdateManagerBootstrap($this.cacheDir, [WMUSF_Downloader]::defaultWmumBootstrapFileName)
   }
 
+
   [WMUSF_Result] AssureDefaultUpdateManagerBootstrap(
     [string]${fullOutputDirectoryPath} = $this.cacheDir,
     [string]${fileName} = $defaultCceBootstrapFileName) {
     $this.audit.LogI("Assuring default boostrap for Update Manager")
-    return $this.AssureWebFileWithChecksumVerification(
+    $r1 = $this.AssureWebFileWithChecksumVerification(
       [WMUSF_Downloader]::defaultWmumBootstrapDownloadURL,
       ${fullOutputDirectoryPath},
       ${fileName},
       [WMUSF_Downloader]::defaultWmumBootstrapFileHash,
       [WMUSF_Downloader]::defaultWmumBootstrapFileHashAlgorithm
     )
+    $this.currentUpdateManagerBootstrapBinary = $r1.PayloadString
+    return $r1
   }
+
 
   [WMUSF_Result] AssureDefaultCceBootstrap() {
     return $this.AssureDefaultCceBootstrap($this.cacheDir, [WMUSF_Downloader]::defaultCceBootstrapFileName)
@@ -251,7 +266,8 @@ class WMUSF_Downloader {
   }
 
   [WMUSF_Result] BootstrapUpdateManager() {
-    return [WMUSF_Result]::GetSimpleResult(2, "BootstrapUpdateManager not implemented", $this.audit)
+    $f = $this.currentUpdateManagerBootstrapBinary
+    return BootstrapUpdateManager($f)
   }
 
   [WMUSF_Result] BootstrapUpdateManager([string]$BootStrapBinaryFile) {
