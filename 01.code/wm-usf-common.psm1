@@ -1,13 +1,11 @@
 
 Using module "./wm-usf-audit.psm1"
 Using module "./wm-usf-result.psm1"
-Using module "./wm-usf-downloader.psm1"
 Using module "./wm-usf-setup-template.psm1"
 
 Import-Module "$PSScriptRoot/wm-usf-utils.psm1"
 
 $audit = [WMUSF_Audit]::GetInstance()
-$downloader = [WMUSF_Downloader]::GetInstance()
 
 ## Convenient Constants
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
@@ -257,94 +255,4 @@ function Install-FixesForUpdateManager () {
   $r.Code = 0
   $r.Description = "Done"
   return $r
-}
-function New-InstallationFromTemplate {
-  param(
-    [Parameter(mandatory = $true)]
-    [string] ${InstallHome},
-    [Parameter(mandatory = $true)]
-    [string] ${TemplateId},
-    [Parameter(Mandatory = $false)]
-    [string]${InstallerBinaryFile} = `
-    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + ${defaultInstallerFileName}) `
-      ,
-    [Parameter(mandatory = $true)]
-    [string] ${ProductsImagefile},
-    [Parameter(Mandatory = $false)]
-    [string]${UpdMgrHome} = (Resolve-GlobalScriptVar "WMUSF_UPD_MGR_HOME"),
-    [Parameter(mandatory = $false)]
-    [string] ${FixesImagefile} = "N/A"
-  )
-
-  $r = Get-NewResultObject
-
-  if (Test-Path -Path "${InstallHome}${pathSep}install" -PathType Container) {
-    $audit.LogW("Installation folder ${InstallHome} not empty, this may be an overinstall!")
-    $r.Warnings += "Installation folder ${InstallHome} not empty, this may be an overinstall!"
-    $r
-  }
-
-  ${templateFolder} = Get-TemplateBaseFolder "${TemplateId}"
-  if ( "{templateFolder}".Length -le 6 ) {
-    $r.Code = 2
-    $r.Description = "Error (code {templateFolder}) while getting template folder for template ${TemplateId}"
-    $audit.LogD("$r.Description")
-    return $r
-  }
-
-  if ( -Not (Test-Path -Path "${templateFolder}${pathSep}install.wmscript" -PathType Leaf )) {
-    $audit.LogE("The template is not installable!")
-    return 2
-  }
-
-  if ( -Not (Test-Path -Path ${InstallerBinaryFile} -PathType Leaf )) {
-    $audit.LogE("Installer binary file ${InstallerBinaryFile} does not exist")
-    return 3
-  }
-
-  ${sessionLogDir} = Get-LogSessionDir
-  $audit.LogI("Using session log folder ${sessionLogDir} for installation")
-
-  Set-DefaultWMSCRIPT_Vars
-
-  $sf = Get-Content ${templateFolder}${pathSep}install.wmscript -Raw | Invoke-EnvironmentSubstitution
-  $sf > "${sessionLogDir}${pathSep}install.wmscript"
-
-  $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-  $pl = $template.GetProductList().PayloadString
-
-  Add-content "${sessionLogDir}${pathSep}install.wmscript" -value "ProductList=$pl"
-  Add-content "${sessionLogDir}${pathSep}install.wmscript" `
-    -value ("InstallDir=" + (Convert-EscapePathString "${InstallHome}"))
-  Add-content "${sessionLogDir}${pathSep}install.wmscript" `
-    -value ("imageFile=" + (Convert-EscapePathString "${ProductsImagefile}"))
-
-  $cmd = "${InstallerBinaryFile} -console -scriptErrorInteract no -debugLvl verbose"
-  $cmd += " -debugFile ""${sessionLogDir}${pathSep}install.log"""
-  $cmd += " -installDir ""${InstallHome}"""
-  $cmd += " -readScript ""${sessionLogDir}${pathSep}install.wmscript"""
-  $cmd += " -readImage ""${ProductsImagefile}"""
-
-  $audit.LogI("Command to execute is")
-  $audit.LogI("$cmd")
-
-  $audit.InvokeCommand("$cmd", "01.InstallProducts")
-
-  if ("N/A" -eq ${FixesImagefile}) {
-    $audit.LogI("Skipping fixes installation, image not provided")
-  }
-  else {
-    $r1 = Install-FixesForUpdateManager -FixesImagefile ${FixesImagefile}
-    if ($r1.Code -ne 0) {
-      $audit.LogE("Update manager patch failed, cannot continue")
-    }
-  }
-}
-
-function Convert-EscapePathString {
-  param(
-    [Parameter(mandatory = $true)]
-    [string] ${PathString}
-  )
-  ${PathString}.Replace('\', '\\').Replace(':', '\:')
 }

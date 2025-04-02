@@ -321,7 +321,7 @@ class WMUSF_SetupTemplate {
 
   [string] EscapeWmscriptString([string] $input) {
     # Escape the string for wmscript
-    $escaped = $input -replace '\', '\\'
+    $escaped = $input -replace '\\', '\\'
     $escaped = $escaped -replace ':', '\:'
     return $escaped
   }
