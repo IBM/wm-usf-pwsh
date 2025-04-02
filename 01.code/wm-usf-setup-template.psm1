@@ -67,7 +67,7 @@ class WMUSF_SetupTemplate {
       }
     }
     $this.imagesFolder = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
-    $this.imagesFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "images"
+    $this.imagesFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "images" + [IO.Path]::DirectorySeparatorChar + "products"
     $this.productsFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
     $this.productsZipFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.zip"
     $rrff = $this.ResolveFixesFoldersNames()
@@ -308,8 +308,8 @@ class WMUSF_SetupTemplate {
     # Preparing the update command
     $cmd = "." + [IO.Path]::DirectorySeparatorChar + "UpdateManagerCMD.bat"
     $cmd += " -selfUpdate false"
-    $cmd += " -readScript " + '"' + $r1.PayloadString + '"'
-    $cmd += " -installDir " + '"' + $this.latestFixesFolder + '"'
+    $cmd += " -readScript " + '"' + $r2.PayloadString + '"'
+    $cmd += " -installDir " + '"' + $r1.PayloadString + '"'
     $cmd += " -imagePlatform W64" # TODO - generalize this
     $cmd += " -createImage " + '"' + $this.latestFixesZipLocation + '"'
     $cmd += " -empowerUser ""${user}"""
