@@ -25,7 +25,7 @@
 
   <!-- c:\l This is our licenses folder -->
   <MappedFolder>
-    <HostFolder>${env:currentDirectory}\licenses</HostFolder>
+    <HostFolder>${env:currentDirectory}\..\..\10.local-files\licenses</HostFolder>
     <ReadOnly>true</ReadOnly>
     <SandboxFolder>c:\l</SandboxFolder>
   </MappedFolder>

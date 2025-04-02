@@ -17,7 +17,7 @@ $pesterModulePath = "C:\Program Files\WindowsPowerShell\Modules\Pester"
 
 LogWrite "Starting..."
 
-if (Test-Path -Path pesterModulePath -PathType Container) {
+if (Test-Path -Path $pesterModulePath -PathType Container) {
   LogWrite "This box already has a pester version, removing it ..."
   $module = $pesterModulePath
   & takeown.exe /F $module /A /R
@@ -34,7 +34,7 @@ LogWrite "Setting framework variables on the machine ..."
 # This speeds up testing. Values are valid from the next shell instances
 SetBoxEnvVar 'WMUSF_AUDIT_DIR' "${env:WMUSF_AUDIT_DIR}"
 SetBoxEnvVar 'WMUSF_UPD_MGR_HOME' "${env:WMUSF_UPD_MGR_HOME}"
-SetBoxEnvVar 'WMUSF_ARTIFACTS_CACHE_HOME' "${env:WMUSF_ARTIFACTS_CACHE_HOME}"
+SetBoxEnvVar 'WMUSF_DOWNLOADER_CACHE_DIR' "${env:WMUSF_DOWNLOADER_CACHE_DIR}"
 if ( "${env:WMUSF_SBX_STARTUP_TEMPLATE}" -ne "" ) {
   LogWrite "User configured this sandbox to start with template ${env:WMUSF_SBX_STARTUP_TEMPLATE} setup"
   SetBoxEnvVar 'WMUSF_SBX_STARTUP_TEMPLATE' "${env:WMUSF_SBX_STARTUP_TEMPLATE}"

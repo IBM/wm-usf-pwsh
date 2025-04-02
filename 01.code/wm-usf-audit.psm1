@@ -17,9 +17,7 @@ class WMUSF_Audit {
     if (${env:WMUSF_AUDIT_DEBUG} -eq "1") {
       $this.debugOn = "1"
     }
-    $tempDir = [System.IO.Path]::GetTempPath()
-    $tempDir = $tempDir.Substring(0, $tempDir.Length - 1)
-    $dv = "${tempDir}WMUSF_AUDIT"
+    $dv = [System.IO.Path]::GetTempPath() + "WMUSF_AUDIT"
     $this.AuditDir = $(${env:WMUSF_AUDIT_DIR} ?? "${dv}")
     Write-Host "AuditDir: " $this.AuditDir
 
