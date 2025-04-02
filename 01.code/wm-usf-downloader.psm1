@@ -34,6 +34,8 @@ class WMUSF_Downloader {
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.cacheDir = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
     $this.updateManagerHome = ${env:WMUSF_UPD_MGR_HOME} ?? [System.IO.Path]::GetTempPath() + 'WmUpdateMgr'
+    $this.currentInstallerBinary = ${env:WMUSF_INSTALLER_BINARY} ?? "N/A"
+    $this.currentUpdateManagerBootstrapBinary = ${env:WMUSF_UPD_MGR_BOOTSTRAP_BINARY} ?? "N/A"
     $this.onlineMode = ${env:WMUSF_DOWNLOADER_ONLINE_MODE} ?? 'true'
     $this.audit.LogI("WMUSF_Downloader initialized")
     $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
@@ -267,11 +269,28 @@ class WMUSF_Downloader {
 
   [WMUSF_Result] BootstrapUpdateManager() {
     $f = $this.currentUpdateManagerBootstrapBinary
+    if ($f -eq "N/A") {
+      $this.audit.LogE("Update Manager bootstrap binary not yet inisitalized, attempting to do it now...")
+      $r1 = $this.AssureDefaultUpdateManagerBootstrap()
+      if ($r1.Code -ne 0) {
+        $this.audit.LogE("Error assuring default Update Manager bootstrap binary")
+        return $r1
+      }
+      $f = $r1.PayloadString
+    }
     return $this.BootstrapUpdateManager($f)
   }
 
   [WMUSF_Result] BootstrapUpdateManager([string]$BootStrapBinaryFile) {
+
     $r = [WMUSF_Result]::new()
+
+    if (-Not (Test-Path $BootStrapBinaryFile -PathType Leaf)) {
+      $r.Description = "Bootstrap binary not found: " + $BootStrapBinaryFile
+      $this.audit.LogE($r.Description)
+      $r.Code = 3
+      return $r
+    }
 
     if (Test-Path ($this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin') -PathType Container) {
       $this.audit.LogI("Update Manager home already exists, nothing to do")
@@ -279,13 +298,8 @@ class WMUSF_Downloader {
       $r.Description = "Update Manager already present"
       return $r
     }
-    $r1 = $this.AssureDefaultUpdateManagerBootstrap()
-    if ($r1.Code -ne 0) {
-      $this.audit.LogE("Error assuring default Update Manager bootstrap binary")
-      $r.Code = 1
-      $r.Description = "Error assuring default Update Manager bootstrap binary"
-      $r.NestedResults = $r1
-    }
+
+    $this.audit.LogI("Bootstrapping Update Manager from file: " + $BootStrapBinaryFile)
 
     ${tempFolder} = [System.IO.Path]::GetTempPath() + 'UpdMgrInstallation'
     $this.audit.LogI("Using temporary folder ${tempFolder} for Update Manager Bootstrap")
