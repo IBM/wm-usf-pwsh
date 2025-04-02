@@ -3,6 +3,8 @@ Using module "./wm-usf-audit.psm1"
 Using module "./wm-usf-result.psm1"
 Using module "./wm-usf-downloader.psm1"
 
+Import-Module -Name "$PSScriptRoot./wm-usf-utils.psm1" -Force
+
 class WMUSF_SetupTemplate {
   static [string] $baseTemplatesFolderFolder = [WMUSF_SetupTemplate]::GetBaseTemplatesFolder()
 
@@ -67,9 +69,10 @@ class WMUSF_SetupTemplate {
       }
     }
     $this.imagesFolder = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
-    $this.imagesFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "images" + [IO.Path]::DirectorySeparatorChar + "products"
-    $this.productsFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
-    $this.productsZipFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.zip"
+    $this.imagesFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "images"
+    $this.productsZipFile = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "products"
+    $this.productsZipFile = $this.productsZipFile + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
+    $this.productsZipFile = $this.productsZipFile + [IO.Path]::DirectorySeparatorChar + "products.zip"
     $rrff = $this.ResolveFixesFoldersNames()
     if ($rrff.Code -ne 0) {
       $this.audit.LogE("Unable to resolve fixes folders: " + $rrff.Code)
@@ -247,6 +250,34 @@ class WMUSF_SetupTemplate {
       $document | ConvertTo-Json -depth 100 | Out-File -Encoding "ascii" "$invFileName"
     }
 
+    $r.Code = 0
+    return $r
+  }
+
+  [WMUSF_Result] GenerateInstallScript([string] $scriptFolder, [string] $scriptFileName) {
+    $r = [WMUSF_Result]::new()
+
+    $destFolder = $scriptFolder
+    if ("" -eq $scriptFolder) {
+      $destFolder = $this.audit.LogSessionDir
+      $this.audit.LogW("Using Default destination folder for install script: " + $destFolder)
+    }
+    if ($null -eq $scriptFileName -or "" -eq $scriptFileName) {
+      $scriptFileName = "install.wmscript"
+      $this.audit.LogW("Using Default install script file name: " + $scriptFileName)
+    }
+    $destFile = $destFolder + [IO.Path]::DirectorySeparatorChar + $scriptFileName
+    $this.audit.LogI("Generating install script file: " + $destFile)
+    $templateContent = Get-Content -Path $this.installerScriptFile -Raw
+    $scriptContent = $templateContent | Invoke-EnvironmentSubstitution
+    $scriptContent | Out-File -FilePath $destFile -Encoding ascii
+    Select-String -Path $destFile -Pattern "WMSCRIPT_" -Quiet
+    if ($scriptContent -match "WMSCRIPT_") {
+      $r.Description = "Error generating install script file, exiting with error"
+      $r.Code = 1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
     $r.Code = 0
     return $r
   }
