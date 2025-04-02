@@ -314,7 +314,7 @@ class WMUSF_Downloader {
     }
 
     Push-Location .
-    Set-Location $this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin'
+    Set-Location ($this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin')
     if (-Not (Test-Path -PathType Leaf -Path "UpdateManagerCMD.bat")) {
       $r.Code = 3
       $r.Description = "Ineffective change directory, current directory is not the Update Manager bin folder"
