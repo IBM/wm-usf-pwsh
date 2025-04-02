@@ -7,7 +7,7 @@ class WMUSF_Downloader {
   hidden [WMUSF_Audit] $audit
   hidden [string] $cacheDir
   [string] $updateManagerHome
-  [string] $onineMode
+  [string] $onlineMode
 
   # Download constants
   #TODO check if Set-Variable test -Option Constant -Value 100 approach is better
