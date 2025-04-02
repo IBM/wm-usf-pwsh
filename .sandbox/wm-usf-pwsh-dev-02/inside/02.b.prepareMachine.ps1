@@ -13,7 +13,18 @@ function SetBoxEnvVar {
   # [System.Environment]::SetEnvironmentVariable($VarName, $VarValue, [System.EnvironmentVariableTarget]::Process)
 }
 
+$pesterModulePath = "C:\Program Files\WindowsPowerShell\Modules\Pester"
+
 LogWrite "Starting..."
+
+if (Test-Path -Path pesterModulePath -PathType Container) {
+  LogWrite "This box already has a pester version, removing it ..."
+  $module = $pesterModulePath
+  & takeown.exe /F $module /A /R
+  & icacls.exe $module /reset
+  & icacls.exe $module /grant "*S-1-5-32-544:F" /inheritance:d /T
+  Remove-Item -Path $module -Recurse -Force -Confirm:$false
+}
 
 LogWrite "Importing module Pester v ${env:PESTER_VERSION} ..."
 Install-Module -Name Pester -RequiredVersion ${env:PESTER_VERSION} -Force -SkipPublisherCheck
