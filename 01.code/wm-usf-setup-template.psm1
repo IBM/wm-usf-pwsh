@@ -291,7 +291,42 @@ class WMUSF_SetupTemplate {
     $this.latestFixesFolder = $this.todayFixesFolder
     $this.latestFixesZipLocation = $this.todayFixesZipLocation
 
-    $r2 = GenerateFixDownloadScriptFile($this.todayFixesFolder)
+    $r2 = $this.GenerateFixDownloadScriptFile($this.todayFixesFolder)
+    if ($r2.Code -ne 0) {
+      $r.Description = "Today's fixes download script file cannot be generated, exiting with error"
+      $r.Code = 2
+      $r.NestedResults += $r2
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
+    $user = $env:WMUSF_DOWNLOAD_USER ?? ( Read-Host -Prompt "Enter your webMethods download center user name" )
+    $pass = $env:WMUSF_DOWNLOAD_PASSWORD ?? ( Read-Host -MaskInput "Enter your webMethods download center user password" )
+
+    # Preparing the update command
+    $cmd = "." + [IO.Path]::DirectorySeparatorChar + "UpdateManagerCMD.bat"
+    $cmd = "./UpdateManagerCMD.bat -selfUpdate false"
+    $cmd = " -readScript " + '"' + $r1.PayloadString + '"'
+    $cmd += " -installDir " + '"' + $this.latestFixesFolder + '"'
+    $cmd += "-imagePlatform W64" # TODO - generalize this
+    $cmd += " -createImage " + '"' + $this.latestFixesZipLocation + '"'
+    $cmd += "-empowerUser ""${user}"""
+    $cmd += " -empowerPass "
+
+    $this.audit.LogI("Prepared fixes download command:")
+    $this.audit.LogI("$cmd ***")
+
+    $cmd += """${pass}"""
+
+    $downloader = [WMUSF_Downloader]::GetInstance()
+    $r3 = $downloader.ExecuteUpdateManagerCommand($cmd, "DownloadFixes")
+    if ( $r3.Code -ne 0) {
+      $r.Description = "Today's fixes zip file cannot be downloaded, exiting with error"
+      $r.Code = 3
+      $r.NestedResults += $r3
+      $this.audit.LogE($r.Description)
+      return $r
+    }
 
     $r.Code = 0
     $r.PayloadString = $this.todayFixesZipLocation

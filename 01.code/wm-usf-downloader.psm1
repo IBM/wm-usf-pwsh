@@ -298,4 +298,22 @@ class WMUSF_Downloader {
     $r.Description = "Update Manager Installed"
     return $r
   }
+
+  [WMUSF_Result] ExecuteUpdateManagerCommand([string] $cmd, [string] $auditTag) {
+    $r = [WMUSF_Result]::new()
+
+    $this.audit.LogI("Executing Update Manager command: $cmd")
+    $r1 = $this.audit.InvokeCommand($cmd, $auditTag)
+    if ($r1.Code -ne 0) {
+      $r.Description = "Error executing download command: " + $r1.Description
+      $this.audit.LogE($r.Description)
+      $r.Code = 1
+      return $r
+    }
+
+    $r.Code = 0
+    $r.Description = "Update Manager command executed"
+    return $r
+  }
+
 }
