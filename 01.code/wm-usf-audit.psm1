@@ -73,16 +73,27 @@ class WMUSF_Audit {
     ${ts} = Get-Date -UFormat "%s"
     ${baseOutputFileName} = $this.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "${ts}_${AuditTag}"
 
+    # Protect logging of passwords
+    # ATTN: framework convention -pass and -empowerPass to be passed as the last parameter
+    # installer
+    ${cmdToLog} = ${Command} -replace "(.*)\-pass\ (.*)", "`${1}-pass ***"
+    # update manager
+    ${cmdToLog} = ${cmdToLog} -replace "(.*)\-empowerPass\ (.*)", "`${1}-empowerPass ***"
 
     ${fullCmd} = $Command + " >>""${baseOutputFileName}.out.txt"" 2>>""${baseOutputFileName}.err.txt"
+    ${cmdToLog} += " >>""${baseOutputFileName}.out.txt"" 2>>""${baseOutputFileName}.err.txt"
     if ("/" -eq [IO.Path]::DirectorySeparatorChar) {
       ${fullCmd} += '" || echo $LastExitCode >"'
+      ${cmdToLog} += '" || echo $LastExitCode >"'
     }
     else {
       ${fullCmd} += '" || echo 255 >"'
+      ${cmdToLog} += '" || echo 255 >"'
     }
-    ${fullCmd} += "${baseOutputFileName}.exitcode.txt"
-    ${fullCmd} += '"'
+    ${fullCmd} += "${baseOutputFileName}.exitcode.txt" + '"'
+    ${cmdToLog} += "${baseOutputFileName}.exitcode.txt" + '"'
+
+    $cmdToLog = ${fullCmd}
     $this.LogI("Executing command: ${fullCmd}")
     try {
       Add-Content -Path "${baseOutputFileName}.exitcode.txt" -Value "0"
