@@ -305,12 +305,12 @@ class WMUSF_SetupTemplate {
 
     # Preparing the update command
     $cmd = "." + [IO.Path]::DirectorySeparatorChar + "UpdateManagerCMD.bat"
-    $cmd = "./UpdateManagerCMD.bat -selfUpdate false"
-    $cmd = " -readScript " + '"' + $r1.PayloadString + '"'
+    $cmd += " -selfUpdate false"
+    $cmd += " -readScript " + '"' + $r1.PayloadString + '"'
     $cmd += " -installDir " + '"' + $this.latestFixesFolder + '"'
-    $cmd += "-imagePlatform W64" # TODO - generalize this
+    $cmd += " -imagePlatform W64" # TODO - generalize this
     $cmd += " -createImage " + '"' + $this.latestFixesZipLocation + '"'
-    $cmd += "-empowerUser ""${user}"""
+    $cmd += " -empowerUser ""${user}"""
     $cmd += " -empowerPass "
 
     $this.audit.LogI("Prepared fixes download command:")

@@ -302,17 +302,34 @@ class WMUSF_Downloader {
   [WMUSF_Result] ExecuteUpdateManagerCommand([string] $cmd, [string] $auditTag) {
     $r = [WMUSF_Result]::new()
 
+    if (-Not (Test-Path ($this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin') -PathType Container)) {
+      $this.audit.LogW("Update Manager not installed, attempting to install it")
+      $r1 = $this.BootstrapUpdateManager()
+      if ($r1.Code -ne 0) {
+        $this.audit.LogE("Error bootstrapping Update Manager")
+        $r.Code = 1
+        $r.Description = "Error bootstrapping Update Manager: " + $r1.Description
+        return $r
+      }
+    }
+
     $this.audit.LogI("Executing Update Manager command: $cmd")
+    Push-Location .
+    Set-Location $this.updateManagerHome
     $r1 = $this.audit.InvokeCommand($cmd, $auditTag)
     if ($r1.Code -ne 0) {
       $r.Description = "Error executing download command: " + $r1.Description
       $this.audit.LogE($r.Description)
-      $r.Code = 1
-      return $r
+      $r.Code = 2
+      $r.NestedResults = $r1
     }
-
-    $r.Code = 0
-    $r.Description = "Update Manager command executed"
+    else {
+      $r.Description = "Update Manager command executed successfully"
+      $r.Code = 0
+      $this.audit.LogD($r.Description)
+      $r.PayloadString = $r1.PayloadString
+    }
+    Pop-Location
     return $r
   }
 
