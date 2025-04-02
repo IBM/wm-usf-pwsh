@@ -28,7 +28,14 @@ class WMUSF_SetupTemplate {
 
   [string]$useTodayFixes = "false"
 
+  WMUSF_SetupTemplate([string] $id) {
+    $this.init($id, 'true')
+  }
   WMUSF_SetupTemplate([string] $id, [string] $useTodayFixes) {
+    $this.init($id, $useTodayFixes)
+  }
+
+  hidden init([string] $id, [string] $useTodayFixes) {
 
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.id = $id
