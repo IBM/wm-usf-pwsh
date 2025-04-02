@@ -293,7 +293,7 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
-  [WMUSF_Result] GenerateFixDownloadScriptFile($scriptFolder) {
+  [WMUSF_Result] GenerateFixDownloadScriptFile([string] $scriptFolder) {
 
     $this.audit.LogD("Generating Fix Download Script file in folder $scriptFolder")
     $r = [WMUSF_Result]::new()
@@ -317,7 +317,14 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
-  [WMUSF_Result] GenerateFixApplyScriptFile($scriptFolder) {
+  [string] EscapeWmscriptString([string] $input) {
+    # Escape the string for wmscript
+    $escaped = $input -replace '\', '\\'
+    $escaped = $escaped -replace ':', '\:'
+    return $escaped
+  }
+  # TODO: this methods would stay better in the downloader
+  [WMUSF_Result] GenerateFixApplyScriptFile([string] $scriptFolder, [string] $installDir, [string] $imageFile) {
 
     $this.audit.LogD("Generating Fix Apply Script file in folder $scriptFolder")
     $r = [WMUSF_Result]::new()
@@ -328,8 +335,8 @@ class WMUSF_SetupTemplate {
     $lines += "installSP=N"
     $lines += "action=Install fixes from image"
     $lines += "selectedFixes=spro:all"
-    $lines += "installDir=SomeDirectory" # This should be overwritten by the command line
-    $lines += "imageFile=fixes.zip" # TODO - gneralize this
+    $lines += "installDir=" + $this.EscapeWmscriptString($installDir)
+    $lines += "imageFile=" + $this.EscapeWmscriptString($imageFile)
 
     ${lines} | Out-File -FilePath ${scriptFile}
 

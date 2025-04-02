@@ -105,12 +105,33 @@ class WMUSF_Installation {
   }
 
   [WMUSF_Result] Patch() {
+    $this.ResolveFixesFoldersNames()
     return $this.Patch($this.template.latestFixesZipFile)
   }
 
   [WMUSF_Result] Patch([string] $givenFixesZipFile) {
     $r = [WMUSF_Result]::new()
-    $r1 = GenerateFixApplyScriptFile($d)
+    if (-Not (Test-Path -Path $this.template.latestFixesZipFile -PathType Leaf)) {
+      $r.Code = 2
+      $r.Description = "The fixes file does not exist: " + $this.template.latestFixesZipFile
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
+    $r1 = $this.template.GenerateFixApplyScriptFile($this.audit.LogSessionDir, $this.InstallDir, $givenFixesZipFile)
+    if ($r1.Code -ne 0) {
+      $r.Code = 1
+      $r.Description = "Error generating fix apply script, code: " + $r.Code
+      $r.NestedResults += $r1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    $fixScriptFile = $r1.PayloadString
+
+    $cmd = '.' + [IO.Path]::DirectorySeparatorChar + 'UpdateManagerCMD.bat'
+    $cmd += ' -readScript "' + $fixScriptFile + '"'
+
+    $this.audit.InvokeCommand($cmd, "FixApply")
     return $r
   }
 }
