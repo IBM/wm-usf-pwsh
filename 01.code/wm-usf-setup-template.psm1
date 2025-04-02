@@ -200,7 +200,7 @@ class WMUSF_SetupTemplate {
 
   [WMUSF_Result] AssureFixesZipFile() {
     $r = [WMUSF_Result]::new()
-    $r1 = $this.ResolveFixesFolders()
+    $r1 = $this.ResolveFixesFoldersNames()
     if ($r1.Code -ne 0) {
       $r.Description = "Fixes zip folders cannot be resolved, exiting with error"
       $r.Code = 1
