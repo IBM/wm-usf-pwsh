@@ -294,6 +294,8 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] GenerateFixDownloadScriptFile($scriptFolder) {
+
+    $this.audit.LogD("Generating Fix Download Script file in folder $scriptFolder")
     $r = [WMUSF_Result]::new()
     $scriptFile = $scriptFolder + [IO.Path]::DirectorySeparatorChar + "get-fixes.wmscript"
 
@@ -335,6 +337,7 @@ class WMUSF_SetupTemplate {
     $this.latestFixesFolder = $this.todayFixesFolder
     $this.latestFixesZipLocation = $this.todayFixesZipLocation
 
+    $this.audit.LogD("Debug todayFixesFolder = " + $this.todayFixesFolder)
     $r2 = $this.GenerateFixDownloadScriptFile($this.todayFixesFolder)
     if ($r2.Code -ne 0) {
       $r.Description = "Today's fixes download script file cannot be generated, exiting with error"
