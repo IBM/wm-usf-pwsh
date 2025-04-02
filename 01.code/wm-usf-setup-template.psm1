@@ -317,6 +317,28 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
+  [WMUSF_Result] GenerateFixApplyScriptFile($scriptFolder) {
+
+    $this.audit.LogD("Generating Fix Apply Script file in folder $scriptFolder")
+    $r = [WMUSF_Result]::new()
+    $scriptFile = $scriptFolder + [IO.Path]::DirectorySeparatorChar + "apply-fixes.wmscript"
+
+    $lines = @()
+    $lines += "# Generated"
+    $lines += "installSP=N"
+    $lines += "action=Install fixes from image"
+    $lines += "selectedFixes=spro:all"
+    $lines += "installDir=SomeDirectory" # This should be overwritten by the command line
+    $lines += "imageFile=fixes.zip" # TODO - gneralize this
+
+    ${lines} | Out-File -FilePath ${scriptFile}
+
+    $r.Code = 0
+    $r.Description = "Fixes download script file generated"
+    $r.PayloadString = $scriptFile
+    return $r
+  }
+
   [WMUSF_Result] DownloadTodayFixes() {
     $r = [WMUSF_Result]::new()
     if (-Not (Test-Path $this.todayFixesFolder -PathType Container)) {
@@ -387,14 +409,6 @@ class WMUSF_SetupTemplate {
       $r.Description = "Fixes folders names cannot be resolved, exiting with error"
       $r.Code = 1
       $r.NestedResults += $r1
-      $this.audit.LogE($r.Description)
-      return $r
-    }
-    $r2 = $this.AssureImagesZipFiles()
-    if ($r2.Code -ne 0) {
-      $r.Description = "Fixes zip folders cannot be resolved, exiting with error"
-      $r.Code = 2
-      $r.NestedResults += $r2
       $this.audit.LogE($r.Description)
       return $r
     }
@@ -486,7 +500,6 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
-    $this.audit.LogI("Images zip files assured, continuing with the fixes zip file")
     $r2 = $this.AssureFixesZipFile()
     if ($r2.Code -ne 0) {
       $r.Description = "Fixes zip file cannot be assured, exiting with error"

@@ -105,7 +105,12 @@ class WMUSF_Installation {
   }
 
   [WMUSF_Result] Patch() {
+    return $this.Patch($this.template.latestFixesZipFile)
+  }
+
+  [WMUSF_Result] Patch([string] $givenFixesZipFile) {
     $r = [WMUSF_Result]::new()
+    $r1 = GenerateFixApplyScriptFile($d)
     return $r
   }
 }
