@@ -19,7 +19,7 @@ $audit.LogI("Sandbox test -> Resolving Default Installer binary")
 $r3 = $downloader.AssureDefaultInstaller()
 
 if ($r3.Code -ne 0) {
-  $audit.LogE("Sandbox test -> Unable to resolve Installer binary")
+  $audit.LogE("Sandbox test -> Unable to resolve Installer binary: " + $r3.Code)
   exit 3
 }
 
@@ -34,10 +34,10 @@ else {
 Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
 
 ${templateId} = "${env:WMUSF_SBX_STARTUP_TEMPLATE}"
-$template = [WMUSF_Template]::New(${env:WMUSF_SBX_STARTUP_TEMPLATE})
+$template = [WMUSF_SetupTemplate]::New(${env:WMUSF_SBX_STARTUP_TEMPLATE})
 $r4 = ${templateId}.AssureImagesZipFiles
 if ( $r4.Code -ne 0) {
-  $audit.LogE("Sandbox test -> Unable to resolve template images zip files")
+  $audit.LogE("Sandbox test -> Unable to resolve template images zip files: " + $r4.Code)
   exit 4
 }
 
