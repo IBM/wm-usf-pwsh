@@ -251,7 +251,11 @@ class WMUSF_SetupTemplate {
 
   [WMUSF_Result] DownloadTodayFixes() {
     $r = [WMUSF_Result]::new()
-    $r1 = GenerateInventoryFile()
+    if (-Not (Test-Path $this.todayFixesFolder -PathType Container)) {
+      New-Item -Path $this.todayFixesFolder -ItemType Directory
+      $this.audit.LogD("Today's fixes folder created: " + $this.todayFixesFolder)
+    }
+    $r1 = $this.GenerateInventoryFile()
     if ($r1.Code -ne 0) {
       $r.Description = "Today's inventory file cannot be generated, exiting with error"
       $r.Code = 1
@@ -261,7 +265,10 @@ class WMUSF_SetupTemplate {
     }
     $this.audit.LogI("Today's inventory file generated successfully in " + $r1.PayloadString)
     $this.audit.LogI("Downloading today's fixes zip file... WIP")
+    $r.latestFixesFolder = $this.todayFixesFolder
+    $r.latestFixesZipLocation = $this.todayFixesZipLocation
     $r.Code = 0
+    $r.PayloadString = $this.todayFixesZipLocation
     return $r
   }
 
@@ -277,7 +284,7 @@ class WMUSF_SetupTemplate {
     }
 
     if ($this.useTodayFixes -eq 'true') {
-      $r.Description = "Using today's fixes zip file: $this.todayFixesZipLocation"
+      $r.Description = "Using today's fixes zip file: " + $this.todayFixesZipLocation
       $this.audit.LogI($r.Description)
       if (Test-Path $this.todayFixesZipLocation -PathType Leaf) {
         $r.Description = "Today's fixes folder already exists, nothing to do"
@@ -288,7 +295,7 @@ class WMUSF_SetupTemplate {
       }
     }
     else {
-      $r.Description = "Using latest fixes zip file: $this.latestFixesZipLocation"
+      $r.Description = "Using latest fixes zip file: " + $this.latestFixesZipLocation
       $this.audit.LogI($r.Description)
       if (Test-Path $this.latestFixesZipLocation -PathType Leaf) {
         $r.Description = "Latest fixes folder already exists, nothing to do"
@@ -299,7 +306,18 @@ class WMUSF_SetupTemplate {
       }
     }
     # Need to generate the fixes zip file
-
+    $r2 = $this.DownloadTodayFixes()
+    if ($r2.Code -ne 0) {
+      $r.Description = "Today's fixes zip file cannot be downloaded, exiting with error"
+      $r.Code = 2
+      $r.NestedResults += $r2
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    $r.PayloadString = $r2.PayloadString
+    $r.Code = 0
+    $r.Description = "Today's fixes zip file downloaded successfully in " + $r.PayloadString
+    $this.audit.LogI($r.Description)
     return $r
   }
 
