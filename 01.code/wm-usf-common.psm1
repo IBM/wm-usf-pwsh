@@ -12,36 +12,11 @@ $downloader = [WMUSF_Downloader]::GetInstance()
 ## Convenient Constants
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 # TODO: enforce, this is a bit naive
-${sysTemp} = ${env:TEMP} ?? '/tmp'
+
 ${posixCmd} = (${pathSep} -eq '/') ? $true : $false
 
-
-#################### Auditing & the folders castle
-# All executions are producing logs in the audit folder
-
-function Set-LogSessionDir {
-  param (
-    [Parameter(Mandatory = $true)]
-    [string]${NewSessionDir}
-  )
-  Resolve-WmusfDirectory -directory ${logSessionDir} -alsoLog $false
-  Set-Variable -Name 'LogSessionDir' -Value ${NewSessionDir} -Scope Script
-}
-
-function Get-LogSessionDir {
-  # Retrieve the module-scoped variable
-  Get-Variable -Name 'LogSessionDir' -Scope Script -ValueOnly
-}
-
 function Get-WmUsfHomeDir() {
-  #Get-Variable -Name 'WmUsfHomeDir' -Scope Script -ValueOnly
-  #Set-Variable -Name 'WmUsfHomeDir' -Value (GetItem ${PSScriptRoot}).parent -Scope Script
   (Get-Item ${PSScriptRoot}).parent
-}
-
-function Get-TempSessionDir {
-  # Retrieve the module-scoped variable
-  return Get-Variable -Name 'TempSessionDir' -Scope Script -ValueOnly
 }
 
 ########### Tools
@@ -56,7 +31,6 @@ function Read-UserSecret() {
 }
 
 ## Framework Error and Result Management
-
 function Invoke-WinrsAuditedCommandOnServerList {
   param (
     [Parameter(Mandatory = $true)]
@@ -99,22 +73,6 @@ function Build-ProductList() {
     [string]${InstallationProductList}
   )
   return "ProductList=" + ${InstallationProductList}.Replace([environment]::Newline, ",")
-}
-
-function Get-NewTempDir() {
-  param (
-    # log message
-    [Parameter(Mandatory = $false)]
-    [string]${tmpBaseDir} = `
-    $(Get-Variable -Name 'TempSessionDir' -Scope Script).Value ?? ${sysTemp}
-  )
-
-  if ( ${tmpBaseDir}.Substring(${tmpBaseDir}.Length - 1, 1) -ne ${pathSep} ) {
-    ${tmpBaseDir} += ${pathSep}
-  }
-
-  $r = $tmpBaseDir + (Get-Date -UFormat "%y%m%d%R" | ForEach-Object { $_ -replace ":", "." })
-  return $r
 }
 
 function Resolve-WmusfDirectory {
@@ -201,291 +159,6 @@ function Get-CheckSumsForAllFilesInFolder {
   ${checksums2} | Sort-Object | Out-File -FilePath ${OutFileNamesSorted}
 }
 
-function Get-DownloadServerUrlForTemplate {
-  param (
-    [Parameter(Mandatory = $true)]
-    [string]${TemplateId}
-  )
-  # Note: this is subject to change according to client geolocation and to evolution and transition to the new owner
-  switch -Regex (${TemplateId}) {
-    ".*\\1011\\.*" {
-      return 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi'
-    }
-    default {
-      return 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
-    }
-  }
-}
-
-function Get-ProductsImageForTemplate() {
-  param (
-    [Parameter(Mandatory = $true)]
-    [string]${TemplateId},
-    [Parameter(Mandatory = $false)]
-    [string]${BaseFolder} = `
-    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + 'images') `
-      ,
-    [Parameter(Mandatory = $false)]
-    [string]${InstallerBinary} = `
-    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + ${defaultInstallerFileName}) `
-      ,
-    [Parameter(Mandatory = $true)]
-    [string]${UserName},
-    [Parameter(Mandatory = $true)]
-    [string]${UserPassword}
-  )
-  $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-  $pl = $template.GetProductList().PayloadString
-
-  if (-Not (Test-Path -Path ${BaseFolder} -PathType Container)) {
-    $audit.LogW("Folder ${BaseFolder} does not exist, creating now...")
-    New-Item -Path ${BaseFolder} -ItemType Container
-  }
-  $templateDestinationfolder = "${BaseFolder}\products\${TemplateId}".Replace('\', ${pathSep})
-  if (-Not (Test-Path -Path ${templateDestinationfolder} -PathType Container)) {
-    $audit.LogW("Folder ${templateDestinationfolder} does not exist, creating now...")
-    New-Item -Path ${templateDestinationfolder} -ItemType Container
-  }
-  ${zipLocation} = "$templateDestinationfolder${pathSep}products.zip"
-  $scriptLocation = "$templateDestinationfolder${pathSep}image.creation.wmscript"
-  $debugFile = "$templateDestinationfolder${pathSep}image.creation.debug.log"
-
-  if (Test-Path -Path ${zipLocation} -PathType Leaf) {
-    $audit.LogI("Products zip file already exists, nothing to do")
-    # Potential increment: force overwwrite
-  }
-  else {
-    if (Test-Path -Path ${scriptLocation} -PathType Leaf) {
-      $audit.LogI("Image creation script already exists: $scriptLocation")
-      # Potential increment: force overwwrite
-    }
-    else {
-      $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-      $pl = $template.GetProductList().PayloadString
-      $su = Get-DownloadServerUrlForTemplate "${TemplateId}"
-      $lines = @()
-      $lines += "# Generated"
-      $lines += "InstallProducts=$pl"
-      $lines += "ServerURL=$su"
-      $lines += "imagePlatform=W64"
-      $lines += "InstallLocProducts="
-      $lines += "# Workaround; installer wants this line even if it is overwritten by the commandline"
-      $lines += "imageFile=products.zip"
-    
-      ${lines} | Out-File -FilePath $scriptLocation
-    }
-
-    $cmd = "${InstallerBinary} -console -scriptErrorInteract no -debugLvl verbose "
-    $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptLocation"" -writeImage ""${zipLocation}"" -user ""${UserName}"" -pass "
-
-    $audit.LogI("Executing the following image creation command:")
-    $audit.LogI("$cmd ***")
-    $cmd += """${UserPassword}"""
-    $audit.InvokeCommand("$cmd", "CreateProductsZip")
-  }
-}
-
-function New-BootstrapUpdMgr {
-  param (
-    [Parameter(Mandatory = $false)]
-    [string]${BoostrapUpdateManagerBinary} = (Resolve-GlobalScriptVar 'WMUSF_BOOTSTRAP_UPD_MGR_BIN') ,
-    [Parameter(Mandatory = $false)]
-    [string]${UpdMgrHome} = "N/A",
-    [Parameter(Mandatory = $false)]
-    [string]${OnlineMode} = $true,
-    [Parameter(Mandatory = $false)]
-    [string]${ImageFile} = "N/A" # ImageFile mandatory if bootstrapping offline
-  )
-
-  if ("N/A" -eq ${UpdMgrHome}) {
-    ${UpdMgrHome} = ('${WMUSF_UPD_MGR_HOME}' | Invoke-EnvironmentSubstitution)
-    $audit.LogI("Resolved Update Manager Home from global: ${UpdMgrHome}")
-  }
-
-  if ("" -eq "${UpdMgrHome}") {
-    $audit.LogE("Framework error!")
-    return 9
-  } 
-  if (Test-Path -Path "${UpdMgrHome}${pathSep}bin${pathSep}UpdateManagerCMD.bat" -PathType Leaf) {
-    $audit.LogW("Installation already exists, nothing to do")
-  }
-  else {
-    if (-Not (Test-Path ${BoostrapUpdateManagerBinary} -PathType Leaf)) {
-      $audit.LogE("Bootstrap binary does not exist: ${BoostrapUpdateManagerBinary}")
-      return 1
-    }
-
-    # Workaround for Windows: unzip and run the bat file manually
-    # Warning: this is not documented and subject to change
-    ${tempFolder} = Get-NewTempDir
-    ${tempFolder} += "${pathSep}UpdMgrInstallation"
-    $audit.LogI("Using temporary folder ${tempFolder}")
-    New-Item -Path ${tempFolder} -ItemType Container
-    Expand-Archive -Path "${BoostrapUpdateManagerBinary}" -DestinationPath "${tempFolder}"
-    if (-Not (Test-Path "${tempFolder}${pathSep}sum-setup.bat")) {
-      $audit.LogE("Wrong archive, it does not contain the file sum-setup.bat")
-    }
-    else {
-      Push-Location .
-      Set-Location -Path "${tempFolder}" || return 2
-      $cmd = ".${pathSep}sum-setup.bat --accept-license -d ""${UpdMgrHome}"""
-      if (${OnlineMode} -ne $true) {
-        $cmd += "-i ""${ImageFile}"""
-      }
-      $audit.LogI("Bootstrapping UpdateManager with the following command")
-      $audit.LogI("$cmd")
-      $audit.InvokeCommand("$cmd", "BootstrapUpdMgr")
-      Pop-Location
-    }
-    Remove-Item "${tempFolder}" -Force -Recurse
-  }
-}
-
-function Get-InventoryForTemplate {
-  param (
-    [Parameter(Mandatory = $true)]
-    [string]${TemplateId},
-    [Parameter(Mandatory = $false)]
-    [string]${OutFile} = "",
-    [Parameter(Mandatory = $false)]
-    [string]${sumPlatformString} = "W64",
-    [Parameter(Mandatory = $false)]
-    [string]${updateManagerVersion} = "11.0.0.0040-0819",
-    [Parameter(Mandatory = $false)]
-    [string]${SumPlatformGroupString} = """WIN-ANY"""
-  )
-
-  ${TemplateId}
-  $template = [WMUSF_SetupTemplate]::new(${TemplateId})
-  $lProductsCsv = $template.GetProductList().PayloadString
-  if ($lProductsCsv.Length -le 5) {
-    $audit.LogE("Wrong product list: $lProductsCsv")
-    return 1
-  }
-
-  if (${Outfile} -eq "") {
-    ${ts} = Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S'
-    ${tempFolder} = Get-NewTempDir
-    ${f} = "${tempFolder}\${TemplateId}\trace\local\${ts}".Replace('\', ${pathSep})
-    New-Item ${f} -ItemType Container
-    ${Outfile} = "${f}${pathSep}inventory.json"
-  }
-
-  ${productsHash} = @{} #using a hash for unique values
-
-  foreach ($productString in ${lProductsCsv}.split(',')) {
-    $productCode = $productString.split('/')[-1]
-    $verArray = $productString.split('/')[2].split('_')[-1].split('.')
-    $productVersion = $verArray[0] + '.' + $verArray[1] + '.' + $verArray[2]
-    ${productsHash}["$productCode"] = $productVersion
-  }
-  if (${productsHash}.Count -gt 0) {
-    ${installedProducts} = @()
-    foreach (${productId} in ${productsHash}.Keys) {
-      ${installedProducts} += (@{
-          "productId"   = ${productId}
-          "displayName" = ${productId}
-          "version"     = ${productsHash}["${productId}"]
-        })
-    }
-    $document = @{
-      "installedFixes"          = @()
-      "installedSupportPatches" = @()
-      "envVariables"            = @{
-        "platformGroup"        = @(${SumPlatformGroupString})
-        "UpdateManagerVersion" = "${updateManagerVersion}"
-        "Hostname"             = "localhost"
-        "platform"             = "$sumPlatformString"
-      }
-      "installedProducts"       = $installedProducts
-    }
-    $document | ConvertTo-Json -depth 100 | Out-File -Encoding "ascii" "${OutFile}"
-  }
-}
-
-function Get-FixesImageForTemplate {
-  param (
-    [Parameter(Mandatory = $true)]
-    [string]${TemplateId},
-    [Parameter(Mandatory = $false)]
-    [string]${BaseFolder} = `
-    ((Resolve-GlobalScriptVar 'WMUSF_ARTIFACTS_CACHE_HOME') + ${pathSep} + 'images') `
-      ,
-    [Parameter(Mandatory = $false)]
-    [string]${UpdMgrHome} = (Resolve-GlobalScriptVar "WMUSF_UPD_MGR_HOME"),
-    [Parameter(Mandatory = $false)]
-    [string]${PlatformString} = "W64",
-    [Parameter(Mandatory = $true)]
-    [string]${UserName},
-    [Parameter(Mandatory = $true)]
-    [string]${UserPassword}
-  )
-
-  if (-Not (Test-Path -Path "${UpdMgrHome}${pathSep}bin${pathSep}UpdateManagerCMD.bat" -PathType Leaf)) {
-    $audit.LogE("Incorrect Update Manager path: ${UpdMgrHome}")
-    return 1
-  }
-
-  if (-Not (Test-Path -Path ${BaseFolder} -PathType Container)) {
-    $audit.LogW("Folder ${BaseFolder} does not exist, creating now...")
-    New-Item -Path ${BaseFolder} -ItemType Container
-  }
-  ${currentDay} = "$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%Y-%m-%d')"
-  ${templateDestinationfolder} = "${BaseFolder}\fixes\${currentDay}\${TemplateId}".Replace('\', ${pathSep})
-  if (-Not (Test-Path -Path ${templateDestinationfolder} -PathType Container)) {
-    $audit.LogW("Folder ${templateDestinationfolder} does not exist, creating now...")
-    New-Item -Path ${templateDestinationfolder} -ItemType Container
-  }
-
-  ${zipLocation} = "$templateDestinationfolder${pathSep}fixes.zip"
-  if (Test-Path -Path "${zipLocation}" -PathType Leaf) {
-    $audit.LogI("Fixes image file already exists: ${zipLocation}")
-  }
-  else {
-    ${inventoryLocation} = "${templateDestinationfolder}${pathSep}inventory.json"
-    if (Test-Path -Path "${inventoryLocation}" -PathType Leaf) {
-      $audit.LogI("Inventory file ${inventoryLocation} already exists, continuing with this one")
-    }
-    else {
-      Get-InventoryForTemplate -TemplateId ${TemplateId} -OutFile "${inventoryLocation}"
-    }
-    if (Test-Path -Path "${inventoryLocation}" -PathType Leaf) {
-      $audit.LogI("Inventory file ${inventoryLocation} already exists, continuing with this one")
-    }
-    else {
-      Get-InventoryForTemplate -TemplateId ${TemplateId} -OutFile "${inventoryLocation}"
-    }
-
-    ${scriptLocation} = "${templateDestinationfolder}${pathSep}create.fixes.image.wmscript"
-
-    $lines = @()
-    $lines += "# Generated"
-    $lines += "scriptConfirm=N"
-    $lines += "installSP=N"
-    $lines += "action=Create or add fixes to fix image"
-    $lines += "selectedFixes=spro:all"
-    # $lines += "installDir=${inventoryLocation}"
-    # $lines += "imagePlatform=${PlatformString}"
-    $lines += "createEmpowerImage=C"
-  
-    ${lines} | Out-File -FilePath ${scriptLocation}
-
-    Push-Location .
-    Set-Location ${UpdMgrHome}${pathSep}bin${pathSep}
-    $cmd = "./UpdateManagerCMD.bat -selfUpdate false -readScript ""${scriptLocation}"""
-    $cmd += " -installDir ""${inventoryLocation}"""
-    $cmd += "-imagePlatform ${PlatformString}"
-    $cmd += " -createImage ""${zipLocation}"""
-    $cmd += "-empowerUser ""${UserName}"""
-    $cmd += " -empowerPass "
-    $audit.LogI("Executing audited command:")
-    $audit.LogI("$cmd ***")
-    $cmd += """${UserPassword}"""
-    $audit.InvokeCommand("$cmd", "ComputeFixesImage")
-    Pop-Location
-  }
-}
-
 function Set-DefaultGlobalVariable {
   param(
     [Parameter(mandatory = $true)]
@@ -553,29 +226,22 @@ function Resolve-GlobalScriptVar {
   return ${v}
 }
 
-function Install-FixesFromImage {
-
-}
-
-function Get-TemplateBaseFolder {
-  param(
-    [Parameter(mandatory = $true)]
-    [string] ${TemplateId}
-  )
-  ${templateFolder} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}".Replace('\', ${pathSep})
-  if ( -Not (Test-Path -Path ${templateFolder} -PathType Container )) {
-    $audit.LogE("Template ${TemplateId} does not exist")
-    return 1
-  }
-  if ( -Not (Test-Path -Path ${templateFolder}${pathSep}ProductsList.txt -PathType Leaf)) {
-    $audit.LogE("Folder --${templateFolder}-- exists, but it is not a template!")
-    return 2
-  }
-  return ${templateFolder}
-}
-
-function Install-FixesForInstallation () {
-}
+# function Get-TemplateBaseFolder {
+#   param(
+#     [Parameter(mandatory = $true)]
+#     [string] ${TemplateId}
+#   )
+#   ${templateFolder} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}".Replace('\', ${pathSep})
+#   if ( -Not (Test-Path -Path ${templateFolder} -PathType Container )) {
+#     $audit.LogE("Template ${TemplateId} does not exist")
+#     return 1
+#   }
+#   if ( -Not (Test-Path -Path ${templateFolder}${pathSep}ProductsList.txt -PathType Leaf)) {
+#     $audit.LogE("Folder --${templateFolder}-- exists, but it is not a template!")
+#     return 2
+#   }
+#   return ${templateFolder}
+# }
 
 function Install-FixesForUpdateManager () {
   param(
@@ -699,32 +365,3 @@ function Convert-EscapePathString {
   )
   ${PathString}.Replace('\', '\\').Replace(':', '\:')
 }
-
-############## Initialize Variables
-# This library is founded on a set of variables
-# The scripts are expected to use scoped variables
-# The variables resolved here are "global" for the script importing this module
-function Resolve-WmusfCommonModuleLocals() {
-  ${tempFolder} = ${env:WMUSF_TEMP_DIR} ?? `
-    ${sysTemp} + ${pathSep} + "WMUSF"
-  Set-Variable -Name 'TempSessionDir' -Value ${tempFolder} -Scope Script
-
-  ${auditDir} = ${env:WMUSF_AUDIT_DIR} ?? "${tempFolder}${pathSep}WMUSF_AUDIT"
-  Set-Variable -Name 'AuditBaseDir' -Value ${auditDir} -Scope Script
-
-  ${logSessionDir} = $(${env:WMUSF_LOG_SESSION_DIR} ?? `
-      "${auditDir}${pathSep}$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')")
-  Set-LogSessionDir -NewSessionDir ${logSessionDir}
-
-  Resolve-WmusfDirectory -directory ${tempFolder} -alsoLog $true
-
-  Set-DefaultWMUSF_Vars
-
-  $audit.LogI("Module wm-usf-common.psm1 initialized")
-  $audit.LogD("AuditBaseDir: ${auditDir}")
-  $audit.LogD("LogSessionDir: ${logSessionDir}")
-  $audit.LogD("TempSessionDir: ${tempFolder}")
-  $audit.LogD("WmUsHome: $(Get-WmUsfHomeDir)")
-
-}
-Resolve-WmusfCommonModuleLocals

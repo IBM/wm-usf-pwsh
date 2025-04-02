@@ -207,6 +207,11 @@ class WMUSF_SetupTemplate {
     }
     $this.audit.LogI("Today's inventory file not found, generating it...")
 
+    if (-Not (Test-Path $this.$this.todayFixesFolder -PathType Container)) {
+      New-Item -Path $this.todayFixesFolder -ItemType Directory
+      $this.audit.LogD("Today's fixes folder created: " + $this.todayFixesFolder)
+    }
+
     $productsList = $this.GetProductList()
     if ($productsList.Code -ne 0) {
       $r.Description = "Products list file not found, exiting with error"

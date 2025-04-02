@@ -18,8 +18,10 @@ Describe "Templates" {
     }
   }
   Context 'Inventory Files' {
-    It 'Generates inventory file in the temp location' {
-      Get-InventoryForTemplate "DBC\1011\full"
+    It 'Generates inventory file' {
+      $template = [WMUSF_SetupTemplate]::new("DBC\1011\full")
+      $r = $template.GenerateInventoryFile()
+      $r.Code | Should -Be 0
     }
 
     It 'Checks templates default values' {
@@ -61,11 +63,11 @@ Describe "Templates" {
   }
 
   # TODO: move
-  Context 'Downloads' {
-    It 'Checks the server URL for product downloading' {
-      Get-DownloadServerUrlForTemplate "DBC\1011\full" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi'
-      Get-DownloadServerUrlForTemplate "DBC\1015\full" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
-      Get-DownloadServerUrlForTemplate "anything" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
-    }
-  }
+  # Context 'Downloads' {
+  #   It 'Checks the server URL for product downloading' {
+  #     Get-DownloadServerUrlForTemplate "DBC\1011\full" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi'
+  #     Get-DownloadServerUrlForTemplate "DBC\1015\full" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
+  #     Get-DownloadServerUrlForTemplate "anything" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
+  #   }
+  # }
 }
