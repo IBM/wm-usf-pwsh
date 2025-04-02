@@ -313,9 +313,15 @@ class WMUSF_Downloader {
       }
     }
 
-    $this.audit.LogI("Executing Update Manager command: $cmd")
     Push-Location .
-    Set-Location $this.updateManagerHome
+    Set-Location $this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin'
+    if (-Not (Test-Path -PathType Leaf -Path "UpdateManagerCMD.bat")) {
+      $r.Code = 3
+      $r.Description = "Ineffective change directory, current directory is not the Update Manager bin folder"
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
     $r1 = $this.audit.InvokeCommand($cmd, $auditTag)
     if ($r1.Code -ne 0) {
       $r.Description = "Error executing download command: " + $r1.Description
