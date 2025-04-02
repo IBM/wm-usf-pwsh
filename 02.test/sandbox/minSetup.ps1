@@ -1,24 +1,21 @@
-Using module "/../../01.code/wm-usf-audit.psm1"
-Using module "/../../01.code/wm-usf-downloader.psm1"
-Using module "/../../01.code/wm-usf-setup-template.psm1"
+Using module "../../01.code/wm-usf-audit.psm1"
+Using module "../../01.code/wm-usf-downloader.psm1"
+Using module "../../01.code/wm-usf-setup-template.psm1"
 Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
 
 $audit = [WMUSF_Audit]::GetInstance()
 $downloader = [WMUSF_Downloader]::GetInstance()
 
-$audit.LogI( "Sandbox test -> Resolving Default Update Manager Bootstrap binary")
-$r1 = $downloader.ResolveDefaultUpdateManagerBootstrap
+$audit.LogI( "Sandbox test -> Resolving Update Manage Installation")
+$r1 = $downloader.AssureUpdateManagerInstallation
 
 if ($r1.Code -ne 0) {
-  $audit.LogE("Sandbox test -> Unable to resolve Update Manager bootstrap binary")
+  $audit.LogE("Sandbox test -> Unable to resolve Update Manager installation")
   exit 1
 }
 
-$audit.LogI("Sandbox test -> Bootstrapping Update Manager")
-New-BootstrapUpdMgr
-
 $audit.LogI("Sandbox test -> Resolving Default Installer binary")
-$r3 = $downloader.ResolveDefaultInstallerBootstrap
+$r3 = $downloader.AssureDefaultInstaller
 
 if ($r3.Code -ne 0) {
   $audit.LogE("Sandbox test -> Unable to resolve Installer binary")

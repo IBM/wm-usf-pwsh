@@ -26,10 +26,13 @@ class WMUSF_SetupTemplate {
   [string]$latestFixesFolder = "N/A"
   [string]$latestFixesZipLocation = "N/A"
 
-  WMUSF_SetupTemplate([string] $id) {
+  [string]$useTodayFixes = "false"
+
+  WMUSF_SetupTemplate([string] $id, [string] $useTodayFixes) {
 
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.id = $id
+    $this.useTodayFixes = $useTodayFixes
     $this.templateFolder = [WMUSF_SetupTemplate]::baseTemplatesFolderFolder + [IO.Path]::DirectorySeparatorChar + $id
     # By convention template ids must contain backslash as path separator
     $this.templateFolder = $this.templateFolder.Replace('\', [IO.Path]::DirectorySeparatorChar)

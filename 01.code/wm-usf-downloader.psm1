@@ -6,6 +6,8 @@ class WMUSF_Downloader {
   hidden static [WMUSF_Downloader] $_instance = [WMUSF_Downloader]::new()
   hidden [WMUSF_Audit] $audit
   hidden [string] $cacheDir
+  [string] $updateManagerHome
+  [string] $onineMode
 
   # Download constants
   #TODO check if Set-Variable test -Option Constant -Value 100 approach is better
@@ -29,8 +31,11 @@ class WMUSF_Downloader {
   hidden WMUSF_Downloader() {
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.cacheDir = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
+    $this.updateManagerHome = ${env:WMUSF_UPD_MGR_HOME} ?? [System.IO.Path]::GetTempPath() + 'WmUpdateMgr'
+    $this.onlineMode = ${env:WMUSF_DOWNLOADER_ONLINE_MODE} ?? 'true'
     $this.audit.LogI("WMUSF_Downloader initialized")
     $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
+    $this.audit.LogI("WMUSF_Downloader Update Manager Home: " + $this.updateManagerHome)
   }
 
   hidden static [WMUSF_Downloader] GetInstance() {
@@ -70,14 +75,16 @@ class WMUSF_Downloader {
       Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}"
       $r.Code = 0
       $r.Description = "Success"
+      $r.PayloadString = ${fileName}
     }
     else {
       Rename-Item -Path "${fullFilePath}.verify" -NewName "${fileName}.dubious"
       $this.audit.LogE("The file's ${hashAlgorithm} hash does not match the expected hash.")
       $this.audit.LogE("Got ${fileHash}.Hash, but expected ${expectedHash}!")
+      $r.Code = 2
       $r.Description = "Checksum verification failed"
     }
-    $this.audit.LogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns ${r}")
+    $this.audit.LogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns " + $r.Code)
     return ${r}
   }
 
@@ -116,7 +123,10 @@ class WMUSF_Downloader {
       $this.audit.LogD("its hash is " + $fileHash.Hash)
       if ($fileHash.Hash -eq $expectedHash) {
         $this.audit.LogI("The file's $hashAlgorithm hash matches the expected hash.")
-        return [WMUSF_Result]::GetSuccessResult()
+        $r.Code = 0
+        $r.Description = "Success"
+        $r.PayloadString = $fullFilePath
+        return  $r
       }
       else {
         $this.audit.LogE("The $fullFilePath file's $hashAlgorithm hash does not match the expected hash. Downloaded file renamed")
@@ -212,6 +222,67 @@ class WMUSF_Downloader {
     else {
       return [WMUSF_Result]::GetSimpleResult(1, "Installer binary not found", $this.audit)
     }
+    return $r
+  }
+
+  [WMUSF_Result] AssureUpdateManagerInstallation() {
+    $r = [WMUSF_Result]::new()
+    $r1 = $this.AssureDefaultUpdateManagerBootstrap()
+    if ($r1.Code -ne 0) {
+      $this.audit.LogE("Error assuring default Update Manager bootstrap binary")
+      $r.Code = 1
+      $r.Description = "Error assuring default Update Manager bootstrap binary"
+      $r.NestedResults = $r1
+    }
+    $r.Code = 0
+    $r.Description = "Update Manager bootstrap binary found"
+    return $r
+  }
+
+  [WMUSF_Result] BootstrapUpdateManager() {
+
+
+    $r = [WMUSF_Result]::new()
+
+    if (Test-Path ($this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin') -PathType Container) {
+      $this.audit.LogI("Update Manager home already exists, nothing to do")
+      $r.Code = 0
+      $r.Description = "Update Manager already present"
+      return $r
+    }
+    $r1 = $this.AssureDefaultUpdateManagerBootstrap()
+    if ($r1.Code -ne 0) {
+      $this.audit.LogE("Error assuring default Update Manager bootstrap binary")
+      $r.Code = 1
+      $r.Description = "Error assuring default Update Manager bootstrap binary"
+      $r.NestedResults = $r1
+    }
+
+    ${tempFolder} = [System.IO.Path]::GetTempPath() + 'UpdMgrInstallation'
+    $this.audit.LogI("Using temporary folder ${tempFolder} for Update Manager Bootstrap")
+
+    New-Item -Path ${tempFolder} -ItemType Container
+    Expand-Archive -Path $this. -DestinationPath "${tempFolder}"
+    if (-Not (Test-Path ("${tempFolder}" + [IO.Path]::DirectorySeparatorChar + "sum-setup.bat") -PathType Leaf)) {
+      $r.Code = 2
+      $r.Description = "Wrong archive, it does not contain the file sum-setup.bat"
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
+    Push-Location .
+    Set-Location -Path "${tempFolder}" || return 2
+    $cmd = "." + [IO.Path]::DirectorySeparatorChar + "sum-setup.bat --accept-license -d " + '"' + $this.updateManagerHome + '"'
+    if ($this.onlineMode -ne 'true') {
+      $this.audit.LogW("Offline mode not supported yet, using online mode")
+    }
+    $this.audit.LogI("Bootstrapping UpdateManager with the following command")
+    $this.audit.LogI("$cmd")
+    $this.audit.InvokeCommand("$cmd", "BootstrapUpdMgr")
+    Pop-Location
+
+    $r.Code = 0
+    $r.Description = "Update Manager Installed"
     return $r
   }
 }
