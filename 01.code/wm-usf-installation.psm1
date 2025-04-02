@@ -38,7 +38,7 @@ class WMUSF_Installation {
   }
 
   [WMUSF_Result] InstallProducts() {
-    return InstallProducts($null, $null, 'false')
+    return $this.InstallProducts($null, $null, 'false')
   }
 
   [WMUSF_Result] InstallProducts([string] $givenProductsZipFile, [string] $givenFixesZipFile, [string] $skipFixes) {
@@ -55,7 +55,7 @@ class WMUSF_Installation {
     }
     if (Test-Path -Path $this.template.productsZipFile -PathType Leaf) {
       $r.Code = 2
-      $r.Description = "Error assuring images zip files, code: " + $r.Code
+      $r.Description = "The products file does not exist: " + $this.template.productsZipFile
       $this.audit.LogE($r.Description)
       return $r
     }
