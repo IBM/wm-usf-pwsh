@@ -70,6 +70,10 @@ class WMUSF_SetupTemplate {
     $this.imagesFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "images"
     $this.productsFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
     $this.productsZipFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.zip"
+    $rrff = $this.ResolveFixesFoldersNames()
+    if ($rrff.Code -ne 0) {
+      $this.audit.LogE("Unable to resolve fixes folders: " + $rrff.Code)
+    }
   }
 
   hidden static [string] GetBaseTemplatesFolder() {
@@ -232,31 +236,31 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
-  [WMUSF_Result] ResolveFixesFolders() {
+  [WMUSF_Result] ResolveFixesFoldersNames() {
 
     $r = [WMUSF_Result]::new()
 
     $fixesBaseFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "fixes" `
-      + [IO.Path]::DirectorySeparatorChar + $this.id
+      + [IO.Path]::DirectorySeparatorChar + $this.id.Replace('\', [IO.Path]::DirectorySeparatorChar)
 
     # Compute today's fixes folder
     $todayDate = (Get-Date -Format "yyyy-MM-dd")
     $this.todayFixesFolder = $fixesBaseFolder + [IO.Path]::DirectorySeparatorChar + $todayDate
     $this.todayFixesZipLocation = $this.todayFixesFolder + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
-    $this.audit.LogI("Today's fixes folder set to: $this.todayFixesFolder")
+    $this.audit.LogD("Today's fixes folder set to: " + $this.todayFixesFolder)
 
     # Compute the latest fixes folder
+    $this.latestFixesFolder = "N/A"
+    $this.latestFixesZipLocation = "N/A"
     if (Test-Path $fixesBaseFolder -PathType Container) {
       $latestFolder = Get-ChildItem -Path $fixesBaseFolder -Directory | `
         Sort-Object -Property Name -Descending | Select-Object -First 1
       if ($latestFolder) {
         $this.latestFixesFolder = $latestFolder.FullName
         $this.latestFixesZipLocation = $this.latestFixesFolder + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
-        $this.audit.LogI("Latest fixes folder set to: $this.latestFixesFolder")
+        $this.audit.LogD("Latest fixes folder set to: " + $this.latestFixesFolder)
       }
       else {
-        $this.latestFixesFolder = "N/A"
-        $this.latestFixesZipLocation = "N/A"
         $this.audit.LogW("No subfolders found in fixes base folder: $fixesBaseFolder")
       }
     }

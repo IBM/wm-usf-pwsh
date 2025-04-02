@@ -38,6 +38,12 @@ if ( $r4.Code -ne 0) {
   exit 4
 }
 
+$r4 = $template.AssureImagesZipFiles()
+if ( $r4.Code -ne 0) {
+  $audit.LogE("Sandbox test -> Unable to resolve template images zip files: " + $r4.Code)
+  exit 4
+}
+
 exit 111
 
 ## Below code to be refactored
