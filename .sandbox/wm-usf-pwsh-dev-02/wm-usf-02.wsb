@@ -32,7 +32,7 @@
 
   <!-- c:\y This is our logs folder -->
   <MappedFolder>
-    <HostFolder>${env:currentDirectory}\..\..\10.local-files\sbx</HostFolder>
+    <HostFolder>${env:wmusf-temp-dir}</HostFolder>
     <ReadOnly>false</ReadOnly>
     <SandboxFolder>c:\y</SandboxFolder>
   </MappedFolder>
