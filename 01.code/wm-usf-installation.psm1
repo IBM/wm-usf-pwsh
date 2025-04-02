@@ -53,7 +53,7 @@ class WMUSF_Installation {
       $this.audit.LogE($r.Description)
       return $r
     }
-    if (Test-Path -Path $this.template.productsZipFile -PathType Leaf) {
+    if (-Not (Test-Path -Path $this.template.productsZipFile -PathType Leaf)) {
       $r.Code = 2
       $r.Description = "The products file does not exist: " + $this.template.productsZipFile
       $this.audit.LogE($r.Description)
