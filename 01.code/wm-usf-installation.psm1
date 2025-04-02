@@ -67,6 +67,17 @@ class WMUSF_Installation {
     $installerBinary = $r2.PayloadString
 
     $installWmScript = $this.audit.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "install.wmscript"
+
+    $r3 = $this.template.GenerateFixDownloadScriptFile($installWmScript)
+    if ($r3.Code -ne 0) {
+      $r.Code = 4
+      $r.Description = "Error generating install script, code: " + $r.Code
+      $r.NestedResults += $r3
+      $this.audit.LogE($r.Description)
+      $this.audit.LogE($r.PayloadString)
+      return $r
+    }
+
     $installLogFile = $this.audit.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "install.log"
 
     $installCmd = "$installerBinary -console -scriptErrorInteract no -debugLvl verbose"

@@ -70,8 +70,9 @@ class WMUSF_SetupTemplate {
     }
     $this.imagesFolder = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
     $this.imagesFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "images"
-    $this.productsZipFile = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "products"
-    $this.productsZipFile = $this.productsZipFile + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
+    $this.audit.LogD("Images folder: " + $this.imagesFolder)
+    $this.productsFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "products"
+    $this.productsFolder = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
     $this.productsZipFile = $this.productsZipFile + [IO.Path]::DirectorySeparatorChar + "products.zip"
     $rrff = $this.ResolveFixesFoldersNames()
     if ($rrff.Code -ne 0) {
@@ -278,6 +279,16 @@ class WMUSF_SetupTemplate {
       $this.audit.LogE($r.Description)
       return $r
     }
+
+    $checkUnsubstitutedRows = Select-String -Path ${destFile} -Pattern "WMSCRIPT_"
+    if ( 0 -ne $checkUnsubstitutedRows.Count) {
+      $r.Description = "Substitutions incomplete for the script file"
+      $r.Code = 2
+      $r.PayloadString = $checkUnsubstitutedRows -join "`n"
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
     $r.Code = 0
     return $r
   }
