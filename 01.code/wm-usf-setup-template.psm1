@@ -73,7 +73,7 @@ class WMUSF_SetupTemplate {
     $this.audit.LogD("Images folder: " + $this.imagesFolder)
     $this.productsFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "products"
     $this.productsFolder = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
-    $this.productsZipFile = $this.productsZipFile + [IO.Path]::DirectorySeparatorChar + "products.zip"
+    $this.productsZipFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.zip"
     $rrff = $this.ResolveFixesFoldersNames()
     if ($rrff.Code -ne 0) {
       $this.audit.LogE("Unable to resolve fixes folders: " + $rrff.Code)
@@ -149,8 +149,8 @@ class WMUSF_SetupTemplate {
     }
 
     $this.audit.LogI("Products zip file not found, generating download script...")
-    $scriptFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "install.wmscript"
-    $debugFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "install.debug.log"
+    $scriptFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.download.wmscript"
+    $debugFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.download.debug.log"
     New-Item -Path $this.productsFolder -ItemType Directory
     $scriptCreationResult = $this.GenerateProductsImageDownloadScript()
     if ($scriptCreationResult.Code -ne 0) {
