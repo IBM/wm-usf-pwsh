@@ -270,7 +270,7 @@ class WMUSF_Downloader {
   [WMUSF_Result] BootstrapUpdateManager() {
     $f = $this.currentUpdateManagerBootstrapBinary
     if ($f -eq "N/A") {
-      $this.audit.LogE("Update Manager bootstrap binary not yet inisitalized, attempting to do it now...")
+      $this.audit.LogE("Update Manager bootstrap binary not yet initialized, attempting to do it now...")
       $r1 = $this.AssureDefaultUpdateManagerBootstrap()
       if ($r1.Code -ne 0) {
         $this.audit.LogE("Error assuring default Update Manager bootstrap binary")
@@ -278,7 +278,7 @@ class WMUSF_Downloader {
       }
       $f = $r1.PayloadString
     }
-    return $this.BootstrapUpdateManager($f)
+    return $this.BootstrapUpdateManager($this.cacheDir + [IO.Path]::DirectorySeparatorChar + $f)
   }
 
   [WMUSF_Result] BootstrapUpdateManager([string]$BootStrapBinaryFile) {

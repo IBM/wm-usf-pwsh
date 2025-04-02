@@ -129,8 +129,10 @@ class WMUSF_SetupTemplate {
       $lines += "ServerURL=$su"
       $lines += "imagePlatform=W64"
       $lines += "InstallLocProducts="
-      $lines += "# Workaround; installer wants this line even if it is overwritten by the commandline"
-      $lines += "imageFile=products.zip"
+      # Workaround; installer wants this line even if it is overwritten by the commandline
+      # Hypothesis: the installer MUST receive the file here nonetheless.
+      # tried to overwrite it in the command line, but it produces strange effects, like deleting the original
+      $lines += "imageFile=" + $this.EscapeWmscriptString($this.productsZipFile)
       $r = [WMUSF_Result]::GetSuccessResult()
       $r.PayloadString = $lines -join "`n"
     }

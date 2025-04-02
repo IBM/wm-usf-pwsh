@@ -90,7 +90,7 @@ class WMUSF_Installation {
     $installCmd += " -debugFile " + '"' + $installLogFile + '"'
     $installCmd += " -installDir " + '"' + $this.InstallDir + '"'
     $installCmd += " -readScript " + '"' + $installWmScript + '"'
-    $installCmd += " -readImage " + '"' + $this.template.productsZipFile + '"'
+    #$installCmd += " -readImage " + '"' + $this.template.productsZipFile + '"'
 
     $r4 = $this.audit.InvokeCommand($installCmd, "ProductInstall")
     if ( $r4.Code -ne 0) {
@@ -100,7 +100,8 @@ class WMUSF_Installation {
       $this.audit.LogE($r.Description)
       return $r
     }
-
+    $r.Code = 0
+    $r.Description = "Products installed successfully"
     return $r
   }
 
