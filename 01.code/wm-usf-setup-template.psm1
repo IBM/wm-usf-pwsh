@@ -181,7 +181,7 @@ class WMUSF_SetupTemplate {
 
   [WMUSF_Result] AssureImagesZipFiles() {
     $r = [WMUSF_Result]::new()
-    $r1 = $this.AssureImagesZipFiles()
+    $r1 = $this.AssureProductsZipFile()
     if ($r1.Code -ne 0) {
       $r.Description = "Images zip files cannot be assured, exitting with error"
       $r.Code = 1

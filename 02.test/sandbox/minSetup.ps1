@@ -31,15 +31,19 @@ else {
   exit 0
 }
 
-Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
-
-${templateId} = "${env:WMUSF_SBX_STARTUP_TEMPLATE}"
 $template = [WMUSF_SetupTemplate]::New(${env:WMUSF_SBX_STARTUP_TEMPLATE})
-$r4 = ${templateId}.AssureImagesZipFiles
+$r4 = $template.AssureImagesZipFiles
 if ( $r4.Code -ne 0) {
   $audit.LogE("Sandbox test -> Unable to resolve template images zip files: " + $r4.Code)
   exit 4
 }
+
+exit 111
+
+
+## Below code to be refactored
+Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
+${templateId} = "${env:WMUSF_SBX_STARTUP_TEMPLATE}"
 
 ${pathSep} = [IO.Path]::DirectorySeparatorChar
 
