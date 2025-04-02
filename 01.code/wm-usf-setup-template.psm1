@@ -168,9 +168,6 @@ class WMUSF_SetupTemplate {
 
     $cmd = "${installerBinary} -console -scriptErrorInteract no -debugLvl verbose "
     $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptFile"" -writeImage ""${zipLocation}"" -user ""${user}"" -pass "
-
-    $this.audit.LogI("Executing the following image creation command:")
-    $this.audit.LogI("$cmd ***")
     $cmd += """${pass}"""
 
     $rExec = $this.audit.InvokeCommand("$cmd", "CreateProductsZip")

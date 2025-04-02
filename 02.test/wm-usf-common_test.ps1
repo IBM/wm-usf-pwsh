@@ -23,32 +23,6 @@ Describe "Basics" {
       ${inString} | Invoke-EnvironmentSubstitution | Should -Be 'begin|||ZZ|end'
     }
 
-    # It 'Checks wmUsfHomeDir' {
-    #   ${WmUsfHomeDir} = Get-WmUsfHomeDir
-    #   ${WmUsfHomeDir} | Should -Not -Be $null
-    #   Test-Path -Path ${WmUsfHomeDir} -PathType Container | Should -Be $true
-    # }
-
-    # It 'Checks ResolveGlobalScriptVar default framework variable' {
-    #   Resolve-GlobalScriptVar ('WMUSF_UPD_MGR_HOME') | Should -Not -Be ""
-    # }
-
-    # It 'Checks ResolveGlobalScriptVar explictly set env var' {
-    #   ${env:A} = "B"
-    #   ${env:A} | Should -Be "B"
-    #   Resolve-GlobalScriptVar ('A') | Should -Be "B"
-    # }
-
-    # It 'Checks ResolveGlobalScriptVar explictly set global var' {
-    #   Set-Variable -Name "C" -Scope Global -Value "D" 
-    #   Resolve-GlobalScriptVar ('C') | Should -Be "D"
-    # }
-
-    # It 'Checks ResolveGlobalScriptVar explictly set default global var' {
-    #   Set-DefaultGlobalVariable "E" "F" 
-    #   Resolve-GlobalScriptVar ('E') | Should -Be "F"
-    # }
-
   }
 
   Context 'Checksums' {
