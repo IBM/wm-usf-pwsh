@@ -90,10 +90,9 @@ class WMUSF_Audit {
       ${fullCmd} += '" || echo 255 >"'
       ${cmdToLog} += '" || echo 255 >"'
     }
-    ${fullCmd} += "${baseOutputFileName}.exitcode.txt" + '"'
-    ${cmdToLog} += "${baseOutputFileName}.exitcode.txt" + '"'
+    ${fullCmd} += ("${baseOutputFileName}.exitcode.txt" + '"')
+    ${cmdToLog} += ("${baseOutputFileName}.exitcode.txt" + '"')
 
-    $cmdToLog = ${fullCmd}
     $this.LogI("Executing command: ${cmdToLog}")
     try {
       Add-Content -Path "${baseOutputFileName}.exitcode.txt" -Value "0"
