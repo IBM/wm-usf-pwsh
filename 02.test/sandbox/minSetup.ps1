@@ -32,7 +32,7 @@ else {
 }
 
 $template = [WMUSF_SetupTemplate]::New(${env:WMUSF_SBX_STARTUP_TEMPLATE})
-$r4 = $template.AssureImagesZipFiles
+$r4 = $template.AssureImagesZipFiles()
 if ( $r4.Code -ne 0) {
   $audit.LogE("Sandbox test -> Unable to resolve template images zip files: " + $r4.Code)
   exit 4

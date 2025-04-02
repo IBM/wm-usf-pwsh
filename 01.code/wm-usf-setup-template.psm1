@@ -145,7 +145,15 @@ class WMUSF_SetupTemplate {
     $scriptFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "install.wmscript"
     $debugFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "install.debug.log"
     New-Item -Path $this.productsFolder -ItemType Directory
-    $this.GenerateProductsImageDownloadScript | Out-File -FilePath "$scriptFile" -Encoding ascii
+    $scriptCreationResult = $this.GenerateProductsImageDownloadScript()
+    if ($scriptCreationResult.Code -ne 0) {
+      $r.Code = 2
+      $r.Description = "Failed to produce the image download script: " + $scriptCreationResult.Code
+      $r.NestedResults += $scriptCreationResult
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    $scriptCreationResult.PayloadString | Out-File -FilePath "$scriptFile" -Encoding ascii
     $this.audit.LogI("Download script generated, now downloading the products zip file...")
 
     $user = $env:WMUSF_DOWNLOAD_USER ?? ( Read-Host -Prompt "Enter your webMethods download center user name" )
