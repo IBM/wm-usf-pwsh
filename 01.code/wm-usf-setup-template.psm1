@@ -81,7 +81,6 @@ class WMUSF_SetupTemplate {
       + "03.templates" + [IO.Path]::DirectorySeparatorChar + "01.setup"
   }
 
-
   [string] GetDownloadServerUrl() {
 
     # Note: this is subject to change according to client geolocation and to evolution and transition to the new owner
@@ -191,8 +190,76 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
+  [WMUSF_Result] GenerateInventoryFile() {
+    $r = [WMUSF_Result]::new()
+    # TODO: generalize these strings, for now they are constants
+    $sumPlatformString = "W64"
+    ${updateManagerVersion} = "11.0.0.0040-0819"
+    ${SumPlatformGroupString} = """WIN-ANY"""
+
+    $invFileName = $this.todayFixesFolder + [IO.Path]::DirectorySeparatorChar + "inventory.json"
+    $r.PayloadString = $invFileName
+    if (Test-Path $invFileName -PathType Leaf) {
+      $r.Description = "Today's inventory file already exists, nothing to do"
+      $r.Code = 0
+      $this.audit.LogI($r.Description)
+      return $r
+    }
+    $this.audit.LogI("Today's inventory file not found, generating it...")
+
+    $productsList = $this.GetProductList()
+    if ($productsList.Code -ne 0) {
+      $r.Description = "Products list file not found, exiting with error"
+      $r.Code = 1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    ${productsHash} = @{}
+    foreach ($productString in $productsList.PayloadString.split(',')) {
+      $productCode = $productString.split('/')[-1]
+      $verArray = $productString.split('/')[2].split('_')[-1].split('.')
+      $productVersion = $verArray[0] + '.' + $verArray[1] + '.' + $verArray[2]
+      ${productsHash}["$productCode"] = $productVersion
+    }
+
+    if (${productsHash}.Count -gt 0) {
+      ${installedProducts} = @()
+      foreach (${productId} in ${productsHash}.Keys) {
+        ${installedProducts} += (@{
+            "productId"   = ${productId}
+            "displayName" = ${productId}
+            "version"     = ${productsHash}["${productId}"]
+          })
+      }
+      $document = @{
+        "installedFixes"          = @()
+        "installedSupportPatches" = @()
+        "envVariables"            = @{
+          "platformGroup"        = @(${SumPlatformGroupString})
+          "UpdateManagerVersion" = "${updateManagerVersion}"
+          "Hostname"             = "localhost"
+          "platform"             = "$sumPlatformString"
+        }
+        "installedProducts"       = $installedProducts
+      }
+      $document | ConvertTo-Json -depth 100 | Out-File -Encoding "ascii" "$invFileName"
+    }
+
+    $r.Code = 0
+    return $r
+  }
+
   [WMUSF_Result] DownloadTodayFixes() {
     $r = [WMUSF_Result]::new()
+    $r1 = GenerateInventoryFile()
+    if ($r1.Code -ne 0) {
+      $r.Description = "Today's inventory file cannot be generated, exiting with error"
+      $r.Code = 1
+      $r.NestedResults += $r1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    $this.audit.LogI("Today's inventory file generated successfully in " + $r1.PayloadString)
     $this.audit.LogI("Downloading today's fixes zip file... WIP")
     $r.Code = 0
     return $r
