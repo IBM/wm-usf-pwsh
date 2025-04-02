@@ -39,6 +39,9 @@ if ( "${env:WMUSF_SBX_STARTUP_TEMPLATE}" -ne "" ) {
   LogWrite "User configured this sandbox to start with template ${env:WMUSF_SBX_STARTUP_TEMPLATE} setup"
   SetBoxEnvVar 'WMUSF_SBX_STARTUP_TEMPLATE' "${env:WMUSF_SBX_STARTUP_TEMPLATE}"
 }
+SetBoxEnvVar 'WMUSF_DOWNLOAD_USER' "${env:WMUSF_DOWNLOAD_USER}"
+# Use with care!
+SetBoxEnvVar 'WMUSF_DOWNLOAD_PASSWORD' "${env:WMUSF_DOWNLOAD_PASSWORD}"
 
 LogWrite "Finished setting up, running local tests..."
 
