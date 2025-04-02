@@ -38,6 +38,10 @@ class WMUSF_Installation {
   }
 
   [WMUSF_Result] InstallProducts() {
+    return InstallProducts($null, $null, 'false')
+  }
+
+  [WMUSF_Result] InstallProducts([string] $givenProductsZipFile, [string] $givenFixesZipFile, [string] $skipFixes) {
     $r = [WMUSF_Result]::new()
     
     # TODO: expand for given zip files
@@ -49,7 +53,7 @@ class WMUSF_Installation {
       $this.audit.LogE($r.Description)
       return $r
     }
-    if (Test-Path $this.template.productsZipFile -eq $false) {
+    if (Test-Path -Path $this.template.productsZipFile -PathType Leaf) {
       $r.Code = 2
       $r.Description = "Error assuring images zip files, code: " + $r.Code
       $this.audit.LogE($r.Description)
@@ -86,6 +90,20 @@ class WMUSF_Installation {
     $installCmd += " -readScript " + '"' + $installWmScript + '"'
     $installCmd += " -readImage " + '"' + $this.template.productsZipFile + '"'
 
+    $r4 = $this.audit.InvokeCommand($installCmd, "ProductInstall")
+    if ( $r4.Code -ne 0) {
+      $r.Code = 5
+      $r.Description = "Error installing products, code: " + $r.Code
+      $r.NestedResults += $r4
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
+    return $r
+  }
+
+  [WMUSF_Result] Patch() {
+    $r = [WMUSF_Result]::new()
     return $r
   }
 }

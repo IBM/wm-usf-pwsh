@@ -7,5 +7,6 @@ $installation = [WMUSF_Installation]::new("DBC\1011\full", "C:\webMethods\DBC")
 $r = $installation.InstallProducts()
 if ($r.Code -ne 0) {
   $audit.LogE("Sandbox test -> Unable to install products: " + $r.Code)
+  $r
   exit 1
 }
