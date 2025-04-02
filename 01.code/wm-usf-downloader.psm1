@@ -267,7 +267,7 @@ class WMUSF_Downloader {
 
   [WMUSF_Result] BootstrapUpdateManager() {
     $f = $this.currentUpdateManagerBootstrapBinary
-    return BootstrapUpdateManager($f)
+    return $this.BootstrapUpdateManager($f)
   }
 
   [WMUSF_Result] BootstrapUpdateManager([string]$BootStrapBinaryFile) {
