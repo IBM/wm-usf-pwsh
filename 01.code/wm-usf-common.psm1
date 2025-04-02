@@ -226,23 +226,6 @@ function Resolve-GlobalScriptVar {
   return ${v}
 }
 
-# function Get-TemplateBaseFolder {
-#   param(
-#     [Parameter(mandatory = $true)]
-#     [string] ${TemplateId}
-#   )
-#   ${templateFolder} = "${PSScriptRoot}\..\03.templates\01.setup\${TemplateId}".Replace('\', ${pathSep})
-#   if ( -Not (Test-Path -Path ${templateFolder} -PathType Container )) {
-#     $audit.LogE("Template ${TemplateId} does not exist")
-#     return 1
-#   }
-#   if ( -Not (Test-Path -Path ${templateFolder}${pathSep}ProductsList.txt -PathType Leaf)) {
-#     $audit.LogE("Folder --${templateFolder}-- exists, but it is not a template!")
-#     return 2
-#   }
-#   return ${templateFolder}
-# }
-
 function Install-FixesForUpdateManager () {
   param(
     [Parameter(Mandatory = $false)]
