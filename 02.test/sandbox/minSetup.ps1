@@ -40,7 +40,6 @@ if ( $r4.Code -ne 0) {
 
 exit 111
 
-
 ## Below code to be refactored
 Import-Module "$PSScriptRoot/../../01.code/wm-usf-common.psm1"
 ${templateId} = "${env:WMUSF_SBX_STARTUP_TEMPLATE}"

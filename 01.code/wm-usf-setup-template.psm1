@@ -29,7 +29,7 @@ class WMUSF_SetupTemplate {
   [string]$useTodayFixes = "false"
 
   WMUSF_SetupTemplate([string] $id) {
-    $this.init($id, 'true')
+    $this.init($id, 'false')
   }
   WMUSF_SetupTemplate([string] $id, [string] $useTodayFixes) {
     $this.init($id, $useTodayFixes)
@@ -176,6 +176,88 @@ class WMUSF_SetupTemplate {
       $r.Description = "Products zip file creation failed"
       $r.NestedResults += $rExec
     }
+    return $r
+  }
+
+  [WMUSF_Result] DownloadTodayFixes() {
+    $r = [WMUSF_Result]::new()
+    $this.audit.LogI("Downloading today's fixes zip file... WIP")
+    $r.Code = 0
+    return $r
+  }
+
+  [WMUSF_Result] AssureFixesZipFile() {
+    $r = [WMUSF_Result]::new()
+    $r1 = $this.ResolveFixesFolders()
+    if ($r1.Code -ne 0) {
+      $r.Description = "Fixes zip folders cannot be resolved, exiting with error"
+      $r.Code = 1
+      $r.NestedResults += $r1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
+    if ($this.useTodayFixes -eq 'true') {
+      $r.Description = "Using today's fixes zip file: $this.todayFixesZipLocation"
+      $this.audit.LogI($r.Description)
+      if (Test-Path $this.todayFixesZipLocation -PathType Leaf) {
+        $r.Description = "Today's fixes folder already exists, nothing to do"
+        $r.PayloadString = $this.todayFixesZipLocation
+        $r.Code = 0
+        $this.audit.LogI($r.Description)
+        return $r
+      }
+    }
+    else {
+      $r.Description = "Using latest fixes zip file: $this.latestFixesZipLocation"
+      $this.audit.LogI($r.Description)
+      if (Test-Path $this.latestFixesZipLocation -PathType Leaf) {
+        $r.Description = "Latest fixes folder already exists, nothing to do"
+        $r.PayloadString = $this.latestFixesZipLocation
+        $r.Code = 0
+        $this.audit.LogI($r.Description)
+        return $r
+      }
+    }
+    # Need to generate the fixes zip file
+
+    return $r
+  }
+
+  [WMUSF_Result] ResolveFixesFolders() {
+
+    $r = [WMUSF_Result]::new()
+
+    $fixesBaseFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "fixes" `
+      + [IO.Path]::DirectorySeparatorChar + $this.id
+
+    # Compute today's fixes folder
+    $todayDate = (Get-Date -Format "yyyy-MM-dd")
+    $this.todayFixesFolder = $fixesBaseFolder + [IO.Path]::DirectorySeparatorChar + $todayDate
+    $this.todayFixesZipLocation = $this.todayFixesFolder + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
+    $this.audit.LogI("Today's fixes folder set to: $this.todayFixesFolder")
+
+    # Compute the latest fixes folder
+    if (Test-Path $fixesBaseFolder -PathType Container) {
+      $latestFolder = Get-ChildItem -Path $fixesBaseFolder -Directory | `
+        Sort-Object -Property Name -Descending | Select-Object -First 1
+      if ($latestFolder) {
+        $this.latestFixesFolder = $latestFolder.FullName
+        $this.latestFixesZipLocation = $this.latestFixesFolder + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
+        $this.audit.LogI("Latest fixes folder set to: $this.latestFixesFolder")
+      }
+      else {
+        $this.latestFixesFolder = "N/A"
+        $this.latestFixesZipLocation = "N/A"
+        $this.audit.LogW("No subfolders found in fixes base folder: $fixesBaseFolder")
+      }
+    }
+    else {
+      $this.audit.LogW("Fixes base folder does not exist: $fixesBaseFolder")
+    }
+
+    $r.Code = 0
+    $r.Description = "Fixes folders resolved successfully"
     return $r
   }
 
