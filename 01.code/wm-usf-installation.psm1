@@ -72,9 +72,7 @@ class WMUSF_Installation {
     }
     $installerBinary = $r2.PayloadString
 
-    $installWmScript = $this.audit.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "install.wmscript"
-
-    $r3 = $this.template.GenerateProductsImageDownloadScript()
+    $r3 = $this.template.GenerateInstallScript($this.audit.LogSessionDir, "install.wmscript")
     if ($r3.Code -ne 0) {
       $r.Code = 4
       $r.Description = "Error generating install script, code: " + $r.Code
@@ -83,8 +81,7 @@ class WMUSF_Installation {
       $this.audit.LogE($r.PayloadString)
       return $r
     }
-
-    $r3.PayloadString | Out-File $installWmScript -Encoding ascii
+    $installWmScript = $r3.PayloadString
 
     $installLogFile = $this.audit.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "install.log"
 
