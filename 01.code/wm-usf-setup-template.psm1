@@ -338,6 +338,15 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
+    $r1 = $this.AssureSetupProperties()
+    if ($r1.Code -ne 0) {
+      $r.Description = "Setup properties cannot be resolved, exiting with error"
+      $r.Code = 6
+      $r.NestedResults += $r1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
     $destFolder = $ephmeralScriptFolder
     if ($null -eq $ephmeralScriptFolder -or "" -eq $ephmeralScriptFolder) {
       $destFolder = $this.audit.LogSessionDir
@@ -361,24 +370,6 @@ class WMUSF_SetupTemplate {
     ("InstallProducts=" + $pl.PayloadString) | Out-File -FilePath $destFile -Append -Encoding ascii
     $iFile = $this.EscapeWmscriptString($this.productsZipFullPath)
     ("imageFile=" + $iFile) | Out-File -FilePath $destFile -Append -Encoding ascii
-
-    # TODO: find a way to detect missing substitutions in the script file
-    # Select-String -Path $destFile -Pattern "WMSCRIPT_" -Quiet
-    # if ($scriptContent -match "WMSCRIPT_") {
-    #   $r.Description = "Error generating install script file, exiting with error"
-    #   $r.Code = 3
-    #   $this.audit.LogE($r.Description)
-    #   return $r
-    # }
-
-    $checkUnsubstitutedRows = Select-String -Path ${destFile} -Pattern "WMSCRIPT_"
-    if ( 0 -ne $checkUnsubstitutedRows.Count) {
-      $r.Description = "Substitutions incomplete for the script file"
-      $r.Code = 4
-      $r.PayloadString = $checkUnsubstitutedRows -join "`n"
-      $this.audit.LogE($r.Description)
-      return $r
-    }
 
     $r.Code = 0
     $r.PayloadString = $destFile
