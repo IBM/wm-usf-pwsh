@@ -315,6 +315,13 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
+    if (-Not (Test-Path -Path $this.productsZipFullPath -PathType Leaf)) {
+      $r.Description = "Products zip file not found: " + $this.productsZipFullPath
+      $r.Code = 5
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
     $destFolder = $ephmeralScriptFolder
     if ($null -eq $ephmeralScriptFolder -or "" -eq $ephmeralScriptFolder) {
       $destFolder = $this.audit.LogSessionDir
@@ -324,16 +331,20 @@ class WMUSF_SetupTemplate {
         $this.audit.LogW("Destination folder for ephemeral script created: " + $destFolder)
       }
     }
+
     if ($null -eq $ephemeralScriptFileName -or "" -eq $ephemeralScriptFileName) {
       $scriptFileName = "install.wmscript"
       $this.audit.LogW("Using Default install script file name: " + $scriptFileName)
     }
+
     $destFile = $destFolder + [IO.Path]::DirectorySeparatorChar + $ephemeralScriptFileName
     $this.audit.LogI("Generating install script file: " + $destFile)
     $templateContent = Get-Content -Path $this.installerScriptFullPath -Raw
     $scriptContent = $templateContent | Invoke-EnvironmentSubstitution
     $scriptContent | Out-File -FilePath $destFile -Encoding ascii
     ("InstallProducts=" + $pl.PayloadString) | Out-File -FilePath $destFile -Append -Encoding ascii
+    $iFile = $this.EscapeWmscriptString($this.productsZipFullPath)
+    ("imageFile=" + $iFile) | Out-File -FilePath $destFile -Append -Encoding ascii
     Select-String -Path $destFile -Pattern "WMSCRIPT_" -Quiet
     if ($scriptContent -match "WMSCRIPT_") {
       $r.Description = "Error generating install script file, exiting with error"
