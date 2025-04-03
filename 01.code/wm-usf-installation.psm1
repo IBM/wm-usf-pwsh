@@ -18,9 +18,11 @@ class WMUSF_Installation {
   WMUSF_Installation([string] $templateId) {
     $this.init($templateId, [IO.Path]::DirectorySeparatorChar + "webMethods", "", "")
   }
+
   WMUSF_Installation([string] $templateId, [string] $installPath) {
     $this.init($templateId, $installPath, "", "")
   }
+
   WMUSF_Installation([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenfixesZipFullPath) {
     $this.init($templateId, $installPath, $givenproductsZipFullPath, $givenfixesZipFullPath)
   }

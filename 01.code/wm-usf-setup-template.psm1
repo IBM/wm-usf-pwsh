@@ -212,13 +212,25 @@ class WMUSF_SetupTemplate {
 
   [WMUSF_Result] GenerateInventoryFile() {
     $this.audit.LogD("Generating inventory file for template " + $this.id)
+    $this.ResolveFixesFoldersNames()
+    if ($this.currentFixesFolderFullPath -eq "N/A") {
+      $temp = [System.IO.Path]::GetTempPath()
+      $temp.Substring(0, $temp.Length - 1)
+      $this.audit.LogE("Fixes folder not resolved, using the default temmporary folder to genereate the inventory file: $temp")
+      return $this.GenerateInventoryFile($temp)
+    }
+    return $this.GenerateInventoryFile($this.currentFixesFolderFullPath)
+  }
+
+  [WMUSF_Result] GenerateInventoryFile([string] $destinationFolder) {
+    $this.audit.LogD("Generating inventory file for template " + $this.id)
     $r = [WMUSF_Result]::new()
     # TODO: generalize these strings, for now they are constants
     $sumPlatformString = "W64"
     ${updateManagerVersion} = "11.0.0.0040-0819"
     ${SumPlatformGroupString} = """WIN-ANY"""
 
-    $invFileName = $this.todayFixesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "inventory.json"
+    $invFileName = $destinationFolder + [IO.Path]::DirectorySeparatorChar + "inventory.json"
     $r.PayloadString = $invFileName
     if (Test-Path $invFileName -PathType Leaf) {
       $r.Description = "Today's inventory file already exists, nothing to do"
@@ -228,9 +240,9 @@ class WMUSF_SetupTemplate {
     }
     $this.audit.LogI("Today's inventory file not found, generating it...")
 
-    if (-Not (Test-Path $this.$this.todayFixesFolderFullPath -PathType Container)) {
-      New-Item -Path $this.todayFixesFolderFullPath -ItemType Directory
-      $this.audit.LogD("Today's fixes folder created: " + $this.todayFixesFolderFullPath)
+    if (-Not (Test-Path $destinationFolder -PathType Container)) {
+      New-Item -Path $destinationFolder -ItemType Directory
+      $this.audit.LogD("Destination fixes folder created: " + $destinationFolder)
     }
 
     $productsList = $this.GetProductList()
