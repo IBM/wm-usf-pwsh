@@ -10,8 +10,8 @@ Using module "./wm-usf-audit.psm1"
 class WMUSF_Installation {
   [string] $TemplateId
   [string] $InstallDir
-  [string] $productsZipFile
-  [string] $fixesZipFile
+  [string] $productsZipFullPath
+  [string] $fixesZipFullPath
   [WMUSF_Audit] $audit
   hidden [WMUSF_SetupTemplate] $template
 
@@ -21,15 +21,15 @@ class WMUSF_Installation {
   WMUSF_Installation([string] $templateId, [string] $installPath) {
     $this.init($templateId, $installPath, "", "")
   }
-  WMUSF_Installation([string] $templateId, [string] $installPath, [string] $givenProductsZipFile, [string] $givenFixesZipFile) {
-    $this.init($templateId, $installPath, $givenProductsZipFile, $givenFixesZipFile)
+  WMUSF_Installation([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenfixesZipFullPath) {
+    $this.init($templateId, $installPath, $givenproductsZipFullPath, $givenfixesZipFullPath)
   }
 
-  hidden init([string] $templateId, [string] $installPath, [string] $givenProductsZipFile, [string] $givenFixesZipFile) {
+  hidden init([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenfixesZipFullPath) {
     $this.TemplateId = $templateId
     $this.InstallDir = $installPath
-    $this.productsZipFile = $givenProductsZipFile
-    $this.fixesZipFile = $givenFixesZipFile
+    $this.productsZipFullPath = $givenproductsZipFullPath
+    $this.fixesZipFullPath = $givenfixesZipFullPath
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.audit.LogI("WMUSF Installation Subsystem initialized")
     $this.audit.LogI("WMUSF Installation TemplateId: " + $this.TemplateId)
@@ -41,7 +41,7 @@ class WMUSF_Installation {
     return $this.InstallProducts($null, $null, 'false')
   }
 
-  [WMUSF_Result] InstallProducts([string] $givenProductsZipFile, [string] $givenFixesZipFile, [string] $skipFixes) {
+  [WMUSF_Result] InstallProducts([string] $givenproductsZipFullPath, [string] $givenfixesZipFullPath, [string] $skipFixes) {
     $r = [WMUSF_Result]::new()
     
     # TODO: expand for given zip files
@@ -53,9 +53,9 @@ class WMUSF_Installation {
       $this.audit.LogE($r.Description)
       return $r
     }
-    if (-Not (Test-Path -Path $this.template.productsZipFile -PathType Leaf)) {
+    if (-Not (Test-Path -Path $this.template.productsZipFullPath -PathType Leaf)) {
       $r.Code = 2
-      $r.Description = "The products file does not exist: " + $this.template.productsZipFile
+      $r.Description = "The products file does not exist: " + $this.template.productsZipFullPath
       $this.audit.LogE($r.Description)
       return $r
     }
@@ -90,7 +90,7 @@ class WMUSF_Installation {
     $installCmd += " -debugFile " + '"' + $installLogFile + '"'
     $installCmd += " -installDir " + '"' + $this.InstallDir + '"'
     $installCmd += " -readScript " + '"' + $installWmScript + '"'
-    #$installCmd += " -readImage " + '"' + $this.template.productsZipFile + '"'
+    #$installCmd += " -readImage " + '"' + $this.template.productsZipFullPath + '"'
 
     $r4 = $this.audit.InvokeCommand($installCmd, "ProductInstall")
     if ( $r4.Code -ne 0) {
@@ -107,19 +107,19 @@ class WMUSF_Installation {
 
   [WMUSF_Result] Patch() {
     $this.ResolveFixesFoldersNames()
-    return $this.Patch($this.template.latestFixesZipFile)
+    return $this.Patch($this.template.latestfixesZipFullPath)
   }
 
-  [WMUSF_Result] Patch([string] $givenFixesZipFile) {
+  [WMUSF_Result] Patch([string] $givenfixesZipFullPath) {
     $r = [WMUSF_Result]::new()
-    if (-Not (Test-Path -Path $this.template.latestFixesZipFile -PathType Leaf)) {
+    if (-Not (Test-Path -Path $this.template.latestfixesZipFullPath -PathType Leaf)) {
       $r.Code = 2
-      $r.Description = "The fixes file does not exist: " + $this.template.latestFixesZipFile
+      $r.Description = "The fixes file does not exist: " + $this.template.latestfixesZipFullPath
       $this.audit.LogE($r.Description)
       return $r
     }
 
-    $r1 = $this.template.GenerateFixApplyScriptFile($this.audit.LogSessionDir, $this.InstallDir, $givenFixesZipFile)
+    $r1 = $this.template.GenerateFixApplyScriptFile($this.audit.LogSessionDir, $this.InstallDir, $givenfixesZipFullPath)
     if ($r1.Code -ne 0) {
       $r.Code = 1
       $r.Description = "Error generating fix apply script, code: " + $r.Code

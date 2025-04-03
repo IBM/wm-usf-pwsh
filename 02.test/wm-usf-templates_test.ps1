@@ -9,14 +9,14 @@ Describe "Templates" {
 
     It 'Initializes a fake template' {
       $template = [WMUSF_SetupTemplate]::new("a\b\c")
-      $template.templateFolderExists | Should -Be 'false'
+      $template.templateFolderFullPathExists | Should -Be 'false'
     }
 
     It 'Checks a good template' {
       $template = [WMUSF_SetupTemplate]::new("DBC\1011\full")
-      $template.templateFolderExists | Should -Be 'true'
-      $template.productsListExists | Should -Be 'true'
-      $template.installerScriptExists | Should -Be 'true'
+      $template.templateFolderFullPathExists | Should -Be 'true'
+      $template.productsListFileFullPathExists | Should -Be 'true'
+      $template.installerScriptFullPathExists | Should -Be 'true'
     }
   }
   Context 'Inventory Files' {

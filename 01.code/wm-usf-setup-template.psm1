@@ -9,24 +9,31 @@ class WMUSF_SetupTemplate {
   static [string] $baseTemplatesFolderFolder = [WMUSF_SetupTemplate]::GetBaseTemplatesFolder()
 
   [WMUSF_Audit] $audit
-  [string]$imagesFolder = "N/A"
   [string]$id = "N/A"
-  [string]$templateFolder = "N/A"
-  [string]$templateFolderExists = 'false'
+  [string]$imagesFolderFullPath = "N/A"
+  [string]$templateFolderFullPath = "N/A"
+  [string]$templateFolderFullPathExists = 'false'
 
-  [string]$productsListFile = "N/A"
-  [string]$productsListExists = 'false'
+  [string]$productsListFileFullPath = "N/A"
+  [string]$productsListFileFullPathExists = 'false'
 
-  [string]$installerScriptFile = "N/A"
-  [string]$installerScriptExists = 'false'
+  # Products Installation Script file, usually in the template folder
+  [string]$installerScriptFullPath = "N/A"
+  [string]$installerScriptFullPathExists = 'false'
 
-  [string]$productsFolder = "N/A"
-  [string]$productsZipFile = "N/A"
+  # Products Download Script file, usually dynamically generated in the cache / artifacts folder
+  [string]$installerDownloadScriptFullPath = "N/A"
+  [string]$installerDownloadScriptFullPathExists = 'false'
 
-  [string]$todayFixesFolder = "N/A"
-  [string]$todayFixesZipLocation = "N/A"
-  [string]$latestFixesFolder = "N/A"
-  [string]$latestFixesZipLocation = "N/A"
+  [string]$productsFolderFullPath = "N/A"
+  [string]$productsZipFileFullPath = "N/A"
+
+  [string]$currentFixesFolderFullPath = "N/A"
+  [string]$currentFixesZipFullPath = "N/A"
+  [string]$todayFixesFolderFullPath = "N/A"
+  [string]$todayFixesZipFullPath = "N/A"
+  [string]$latestFixesFolderFullPath = "N/A"
+  [string]$latestFixesZipFullPath = "N/A"
 
   [string]$useTodayFixes = "false"
 
@@ -43,38 +50,42 @@ class WMUSF_SetupTemplate {
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.id = $id
     $this.useTodayFixes = $useTodayFixes
-    $this.templateFolder = [WMUSF_SetupTemplate]::baseTemplatesFolderFolder + [IO.Path]::DirectorySeparatorChar + $id
+    $this.templateFolderFullPath = [WMUSF_SetupTemplate]::baseTemplatesFolderFolder + [IO.Path]::DirectorySeparatorChar + $id
     # By convention template ids must contain backslash as path separator
-    $this.templateFolder = $this.templateFolder.Replace('\', [IO.Path]::DirectorySeparatorChar)
-    $this.audit.LogD("Template folder: " + $this.templateFolder)
-    if (-not (Test-Path $this.templateFolder -PathType Container)) {
-      $this.audit.LogE("Template folder " + $this.templateFolder + " does not exist")
+    $this.templateFolderFullPath = $this.templateFolderFullPath.Replace('\', [IO.Path]::DirectorySeparatorChar)
+    $this.audit.LogD("Template folder: " + $this.templateFolderFullPath)
+    if (-not (Test-Path $this.templateFolderFullPath -PathType Container)) {
+      $this.audit.LogE("Template folder " + $this.templateFolderFullPath + " does not exist. Cannot continue.")
+      #throw "Template " + $this.id + " folder does not exist"
     }
     else {
-      $this.templateFolderExists = 'true' 
+      $this.templateFolderFullPathExists = 'true'
   
-      $this.productsListFile = $this.templateFolder + [IO.Path]::DirectorySeparatorChar + "ProductsList.txt"
-      if (Test-Path $this.productsListFile -PathType Leaf) {
-        $this.productsListExists = 'true'
+      $this.productsListFileFullPath = $this.templateFolderFullPath + [IO.Path]::DirectorySeparatorChar + "ProductsList.txt"
+      if (Test-Path $this.productsListFileFullPath -PathType Leaf) {
+        $this.productsListFileFullPathExists = 'true'
       }
       else {
-        $this.productsListExists = 'false'
+        $this.productsListFileFullPathExists = 'false'
       }
 
-      $this.installerScriptFile = $this.templateFolder + [IO.Path]::DirectorySeparatorChar + "install.wmscript"
-      if (Test-Path $this.installerScriptFile -PathType Leaf) {
-        $this.installerScriptExists = 'true'
+      $this.installerScriptFullPath = $this.templateFolderFullPath + [IO.Path]::DirectorySeparatorChar + "install.wmscript"
+      if (Test-Path $this.installerScriptFullPath -PathType Leaf) {
+        $this.installerScriptFullPathExists = 'true'
       }
       else {
-        $this.installerScriptExists = 'false'
+        $this.installerScriptFullPathExists = 'false'
       }
     }
-    $this.imagesFolder = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
-    $this.imagesFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "images"
-    $this.audit.LogD("Images folder: " + $this.imagesFolder)
-    $this.productsFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "products"
-    $this.productsFolder = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
-    $this.productsZipFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.zip"
+    $this.imagesFolderFullPath = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
+    $this.imagesFolderFullPath = $this.imagesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "images"
+    $this.audit.LogD("Images folder for framework: " + $this.imagesFolderFullPath)
+    $this.productsFolderFullPath = $this.imagesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "products"
+    $this.productsFolderFullPath = $this.productsFolderFullPath + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
+    $this.audit.LogD("Products folder for template: " + $this.productsFolderFullPath)
+    $this.productsZipFileFullPath = $this.productsFolderFullPath + [IO.Path]::DirectorySeparatorChar + "products.zip"
+    $this.audit.LogD("Products zip file for template: " + $this.productsZipFileFullPath)
+
     $rrff = $this.ResolveFixesFoldersNames()
     if ($rrff.Code -ne 0) {
       $this.audit.LogE("Unable to resolve fixes folders: " + $rrff.Code)
@@ -101,10 +112,10 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] GetProductList() {
     $this.audit.LogD("Getting product list for template " + $this.id)
     $r = [WMUSF_Result]::new()
-    if ($this.productsListExists -eq 'true') {
+    if ($this.productsListFileFullPathExists -eq 'true') {
       $r = [WMUSF_Result]::GetSuccessResult()
       $r.Description = "Products list file found"
-      $r.PayloadString = (Get-Content -Path $this.productsListFile) -join ","
+      $r.PayloadString = (Get-Content -Path $this.productsListFileFullPath) -join ","
     }
     else {
       $r = [WMUSF_Result]::GetSimpleResult(1, "Products list file not found", $this.audit)
@@ -115,7 +126,7 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] GenerateProductsImageDownloadScript() {
     $this.audit.LogD("Generating products image download script for template " + $this.id)
     $r = [WMUSF_Result]::new()
-    if ($this.productsListExists -eq 'false') {
+    if ($this.productsListFileFullPathExists -eq 'false') {
       $r = [WMUSF_Result]::GetSimpleResult(1, "Products list file not found", $this.audit)
       return $r
     }
@@ -135,7 +146,7 @@ class WMUSF_SetupTemplate {
       # Workaround; installer wants this line even if it is overwritten by the commandline
       # Hypothesis: the installer MUST receive the file here nonetheless.
       # tried to overwrite it in the command line, but it produces strange effects, like deleting the original
-      $lines += "imageFile=" + $this.EscapeWmscriptString($this.productsZipFile)
+      $lines += "imageFile=" + $this.EscapeWmscriptString($this.productsZipFileFullPath)
       $r = [WMUSF_Result]::GetSuccessResult()
       $r.PayloadString = $lines -join "`n"
     }
@@ -146,18 +157,19 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] AssureProductsZipFile() {
     $this.audit.LogD("Assuring products zip file for template " + $this.id)
     $r = [WMUSF_Result]::new()
-    if (Test-Path $this.productsZipFile -PathType Leaf) {
+    if (Test-Path $this.productsZipFileFullPath -PathType Leaf) {
       $r = [WMUSF_Result]::GetSuccessResult()
-      $r.Description = "Products zip file already exists, nothing to do"
+      $r.Description = "Products zip file already exists at location " + $this.productsZipFileFullPath + ", nothing to do"
       $r.Code = 0
-      $r.PayloadString = $this.productsZipFile
+      $r.PayloadString = $this.productsZipFileFullPath
+      $this.audit.LogI($r.Description)
       return $r
     }
 
     $this.audit.LogI("Products zip file not found, generating download script...")
-    $scriptFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.download.wmscript"
-    $debugFile = $this.productsFolder + [IO.Path]::DirectorySeparatorChar + "products.download.debug.log"
-    New-Item -Path $this.productsFolder -ItemType Directory
+    $scriptFile = $this.productsFolderFullPath + [IO.Path]::DirectorySeparatorChar + "products.download.wmscript"
+    $debugFile = $this.productsFolderFullPath + [IO.Path]::DirectorySeparatorChar + "products.download.debug.log"
+    New-Item -Path $this.productsFolderFullPath -ItemType Directory
     $scriptCreationResult = $this.GenerateProductsImageDownloadScript()
     if ($scriptCreationResult.Code -ne 0) {
       $r.Code = 2
@@ -174,7 +186,7 @@ class WMUSF_SetupTemplate {
 
     $downloader = [WMUSF_Downloader]::GetInstance()
     $installerBinary = $downloader.GetInstallerBinary().PayloadString # Postponed error checking
-    $zipLocation = $this.productsZipFile
+    $zipLocation = $this.productsZipFileFullPath
 
     $cmd = "${installerBinary} -console -scriptErrorInteract no -debugLvl verbose "
     $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptFile"" -writeImage ""${zipLocation}"" -user ""${user}"" -pass "
@@ -186,7 +198,7 @@ class WMUSF_SetupTemplate {
     if ($rExec.Code -eq 0) {
       $r.Description = "Products zip file created"
       $r.code = 0
-      $r.PayloadString = $this.productsZipFile
+      $r.PayloadString = $this.productsZipFileFullPath
       return $r
     }
     else {
@@ -194,6 +206,7 @@ class WMUSF_SetupTemplate {
       $r.Description = "Products zip file creation failed"
       $r.NestedResults += $rExec
     }
+    $this.audit.LogD($r.Description)
     return $r
   }
 
@@ -205,7 +218,7 @@ class WMUSF_SetupTemplate {
     ${updateManagerVersion} = "11.0.0.0040-0819"
     ${SumPlatformGroupString} = """WIN-ANY"""
 
-    $invFileName = $this.todayFixesFolder + [IO.Path]::DirectorySeparatorChar + "inventory.json"
+    $invFileName = $this.todayFixesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "inventory.json"
     $r.PayloadString = $invFileName
     if (Test-Path $invFileName -PathType Leaf) {
       $r.Description = "Today's inventory file already exists, nothing to do"
@@ -215,9 +228,9 @@ class WMUSF_SetupTemplate {
     }
     $this.audit.LogI("Today's inventory file not found, generating it...")
 
-    if (-Not (Test-Path $this.$this.todayFixesFolder -PathType Container)) {
-      New-Item -Path $this.todayFixesFolder -ItemType Directory
-      $this.audit.LogD("Today's fixes folder created: " + $this.todayFixesFolder)
+    if (-Not (Test-Path $this.$this.todayFixesFolderFullPath -PathType Container)) {
+      New-Item -Path $this.todayFixesFolderFullPath -ItemType Directory
+      $this.audit.LogD("Today's fixes folder created: " + $this.todayFixesFolderFullPath)
     }
 
     $productsList = $this.GetProductList()
@@ -262,29 +275,39 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
-  [WMUSF_Result] GenerateInstallScript([string] $scriptFolder, [string] $scriptFileName) {
-    $this.audit.LogD("Generating install script file in folder $scriptFolder")
-    $this.audit.LogD("Using script file name: " + $scriptFileName)
+  [WMUSF_Result] GenerateInstallScript([string] $ephmeralScriptFolder, [string] $ephemeralScriptFileName) {
+    $this.audit.LogD("Generating install script file in folder $ephmeralScriptFolder")
+    $this.audit.LogD("Using ephemeral script file name: " + $ephemeralScriptFileName)
     $r = [WMUSF_Result]::new()
 
-    $destFolder = $scriptFolder
-    if ("" -eq $scriptFolder) {
+    if ($this.installerScriptFullPathExists -eq 'false') {
+      $r.Description = "Installer script file " + $this.installerScriptFullPath + " not present, is this a download only template?"
+      $r.Code = 1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    $destFolder = $ephmeralScriptFolder
+    if ($null -eq $ephmeralScriptFolder -or "" -eq $ephmeralScriptFolder) {
       $destFolder = $this.audit.LogSessionDir
       $this.audit.LogW("Using Default destination folder for install script: " + $destFolder)
+      if (-Not (Test-Path $destFolder -PathType Container)) {
+        New-Item -Path $destFolder -ItemType Directory
+        $this.audit.LogW("Destination folder for ephemeral script created: " + $destFolder)
+      }
     }
-    if ($null -eq $scriptFileName -or "" -eq $scriptFileName) {
+    if ($null -eq $ephemeralScriptFileName -or "" -eq $ephemeralScriptFileName) {
       $scriptFileName = "install.wmscript"
       $this.audit.LogW("Using Default install script file name: " + $scriptFileName)
     }
-    $destFile = $destFolder + [IO.Path]::DirectorySeparatorChar + $scriptFileName
+    $destFile = $destFolder + [IO.Path]::DirectorySeparatorChar + $ephemeralScriptFileName
     $this.audit.LogI("Generating install script file: " + $destFile)
-    $templateContent = Get-Content -Path $this.installerScriptFile -Raw
+    $templateContent = Get-Content -Path $this.installerScriptFullPath -Raw
     $scriptContent = $templateContent | Invoke-EnvironmentSubstitution
     $scriptContent | Out-File -FilePath $destFile -Encoding ascii
     Select-String -Path $destFile -Pattern "WMSCRIPT_" -Quiet
     if ($scriptContent -match "WMSCRIPT_") {
       $r.Description = "Error generating install script file, exiting with error"
-      $r.Code = 1
+      $r.Code = 2
       $this.audit.LogE($r.Description)
       return $r
     }
@@ -292,13 +315,14 @@ class WMUSF_SetupTemplate {
     $checkUnsubstitutedRows = Select-String -Path ${destFile} -Pattern "WMSCRIPT_"
     if ( 0 -ne $checkUnsubstitutedRows.Count) {
       $r.Description = "Substitutions incomplete for the script file"
-      $r.Code = 2
+      $r.Code = 3
       $r.PayloadString = $checkUnsubstitutedRows -join "`n"
       $this.audit.LogE($r.Description)
       return $r
     }
 
     $r.Code = 0
+    $r.PayloadString = $destFile
     return $r
   }
 
@@ -361,9 +385,9 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] DownloadTodayFixes() {
     $this.audit.LogD("Downloading today's fixes zip file for template " + $this.id)
     $r = [WMUSF_Result]::new()
-    if (-Not (Test-Path $this.todayFixesFolder -PathType Container)) {
-      New-Item -Path $this.todayFixesFolder -ItemType Directory
-      $this.audit.LogD("Today's fixes folder created: " + $this.todayFixesFolder)
+    if (-Not (Test-Path $this.todayFixesFolderFullPath -PathType Container)) {
+      New-Item -Path $this.todayFixesFolderFullPath -ItemType Directory
+      $this.audit.LogD("Today's fixes folder created: " + $this.todayFixesFolderFullPath)
     }
     $r1 = $this.GenerateInventoryFile()
     if ($r1.Code -ne 0) {
@@ -376,10 +400,10 @@ class WMUSF_SetupTemplate {
     $this.audit.LogI("Today's inventory file generated successfully in " + $r1.PayloadString)
     $this.audit.LogI("Downloading today's fixes zip file...")
 
-    $this.latestFixesFolder = $this.todayFixesFolder
-    $this.latestFixesZipLocation = $this.todayFixesZipLocation
+    $this.latestFixesFolderFullPath = $this.todayFixesFolderFullPath
+    $this.latestFixesZipFullPath = $this.todayFixesZipFullPath
 
-    $r2 = $this.GenerateFixDownloadScriptFile($this.todayFixesFolder)
+    $r2 = $this.GenerateFixDownloadScriptFile($this.todayFixesFolderFullPath)
     if ($r2.Code -ne 0) {
       $r.Description = "Today's fixes download script file cannot be generated, exiting with error"
       $r.Code = 2
@@ -397,7 +421,7 @@ class WMUSF_SetupTemplate {
     $cmd += " -readScript " + '"' + $r2.PayloadString + '"'
     $cmd += " -installDir " + '"' + $r1.PayloadString + '"'
     $cmd += " -imagePlatform W64" # TODO - generalize this
-    $cmd += " -createImage " + '"' + $this.latestFixesZipLocation + '"'
+    $cmd += " -createImage " + '"' + $this.latestFixesZipFullPath + '"'
     $cmd += " -empowerUser ""${user}"""
     $cmd += " -empowerPass "
 
@@ -417,7 +441,7 @@ class WMUSF_SetupTemplate {
     }
 
     $r.Code = 0
-    $r.PayloadString = $this.todayFixesZipLocation
+    $r.PayloadString = $this.todayFixesZipFullPath
     return $r
   }
 
@@ -434,22 +458,22 @@ class WMUSF_SetupTemplate {
     }
 
     if ($this.useTodayFixes -eq 'true') {
-      $r.Description = "Using today's fixes zip file: " + $this.todayFixesZipLocation
+      $r.Description = "Using today's fixes zip file: " + $this.todayFixesZipFullPath
       $this.audit.LogI($r.Description)
-      if (Test-Path $this.todayFixesZipLocation -PathType Leaf) {
+      if (Test-Path $this.todayFixesZipFullPath -PathType Leaf) {
         $r.Description = "Today's fixes folder already exists, nothing to do"
-        $r.PayloadString = $this.todayFixesZipLocation
+        $r.PayloadString = $this.todayFixesZipFullPath
         $r.Code = 0
         $this.audit.LogI($r.Description)
         return $r
       }
     }
     else {
-      $r.Description = "Using latest fixes zip file: " + $this.latestFixesZipLocation
+      $r.Description = "Using latest fixes zip file: " + $this.latestFixesZipFullPath
       $this.audit.LogI($r.Description)
-      if (Test-Path $this.latestFixesZipLocation -PathType Leaf) {
+      if (Test-Path $this.latestFixesZipFullPath -PathType Leaf) {
         $r.Description = "Latest fixes folder already exists, nothing to do"
-        $r.PayloadString = $this.latestFixesZipLocation
+        $r.PayloadString = $this.latestFixesZipFullPath
         $r.Code = 0
         $this.audit.LogI($r.Description)
         return $r
@@ -475,32 +499,50 @@ class WMUSF_SetupTemplate {
     $this.audit.LogD("Resolving fixes folders names for template " + $this.id)
     $r = [WMUSF_Result]::new()
 
-    $fixesBaseFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "fixes" `
+    $fixesBaseFolder = $this.imagesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "fixes" `
       + [IO.Path]::DirectorySeparatorChar + $this.id.Replace('\', [IO.Path]::DirectorySeparatorChar)
 
     # Compute today's fixes folder
     $todayDate = (Get-Date -Format "yyyy-MM-dd")
-    $this.todayFixesFolder = $fixesBaseFolder + [IO.Path]::DirectorySeparatorChar + $todayDate
-    $this.todayFixesZipLocation = $this.todayFixesFolder + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
-    $this.audit.LogD("Today's fixes folder set to: " + $this.todayFixesFolder)
+    $this.todayFixesFolderFullPath = $fixesBaseFolder + [IO.Path]::DirectorySeparatorChar + $todayDate
+    $this.todayFixesZipFullPath = $this.todayFixesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
+    $this.audit.LogD("Today's fixes folder set to: " + $this.todayFixesFolderFullPath)
 
-    # Compute the latest fixes folder
-    $this.latestFixesFolder = "N/A"
-    $this.latestFixesZipLocation = "N/A"
-    if (Test-Path $fixesBaseFolder -PathType Container) {
-      $latestFolder = Get-ChildItem -Path $fixesBaseFolder -Directory | `
-        Sort-Object -Property Name -Descending | Select-Object -First 1
-      if ($latestFolder) {
-        $this.latestFixesFolder = $latestFolder.FullName
-        $this.latestFixesZipLocation = $this.latestFixesFolder + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
-        $this.audit.LogD("Latest fixes folder set to: " + $this.latestFixesFolder)
-      }
-      else {
-        $this.audit.LogW("No subfolders found in fixes base folder: $fixesBaseFolder")
-      }
+    if (Test-Path $this.todayFixesZipFullPath -PathType Leaf) {
+      $this.audit.LogD("Today's fixes zip image already exists: " + $this.todayFixesFolderFullPath)
+      $this.currentFixesFolderFullPath = $this.todayFixesFolderFullPath
+      $this.currentFixesZipFullPath = $this.todayFixesZipFullPath
+      $this.latestFixesFolderFullPath = $this.todayFixesFolderFullPath
+      $this.latestFixesZipFullPath = $this.todayFixesZipFullPath
     }
     else {
-      $this.audit.LogW("Fixes base folder does not exist: $fixesBaseFolder")
+      $this.audit.LogD("Today's zipfixes folder does not exist: " + $this.todayFixesFolderFullPath)
+      $this.audit.LogD("Computing the latest fixes folder...")
+
+      # Compute the latest fixes folder
+      $this.latestFixesFolderFullPath = "N/A"
+      $this.latestFixesZipFullPath = "N/A"
+      if (Test-Path $fixesBaseFolder -PathType Container) {
+        $latestFolder = Get-ChildItem -Path $fixesBaseFolder -Directory | `
+          Sort-Object -Property Name -Descending | Select-Object -First 1
+        if ($latestFolder) {
+          if (Test-Path -Path ($latestFolder.FullName + [IO.Path]::DirectorySeparatorChar + "fixes.zip") -PathType Leaf) {
+            $this.currentFixesFolderFullPath = $latestFolder.FullName
+            $this.currentFixesZipFullPath = $this.currentFixesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
+            $this.audit.LogD("Current fixes folder set to: " + $this.currentFixesFolderFullPath)
+          }
+          else {
+            $this.audit.LogW("Latest fix folder does not contain the expected .zip file: " + $latestFolder.FullName)
+            $this.audit.LogW("Continuing without setting a cached fixes zip file...")
+          }
+        }
+        else {
+          $this.audit.LogW("No subfolders found in fixes base folder: $fixesBaseFolder")
+        }
+      }
+      else {
+        $this.audit.LogW("Fixes base folder does not exist: $fixesBaseFolder")
+      }
     }
 
     $r.Code = 0
@@ -511,7 +553,7 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] AssureImagesZipFiles() {
     $this.audit.LogD("Assuring images zip files for template " + $this.id)
     $r = [WMUSF_Result]::new()
-    $r1 = $this.AssureProductsZipFile()
+    $r1 = $this.AssureproductsZipFileFullPath()
     if ($r1.Code -ne 0) {
       $r.Description = "Images zip files cannot be assured, exitting with error"
       $this.audit.LogE($r.Description)
