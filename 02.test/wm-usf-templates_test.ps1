@@ -13,7 +13,7 @@ Describe "Templates" {
     }
 
     It 'Checks a good template' {
-      $template = [WMUSF_SetupTemplate]::new("DBC\1011\full")
+      $template = [WMUSF_SetupTemplate]::new("Example")
       $template.templateFolderFullPathExists | Should -Be 'true'
       $template.productsListFileFullPathExists | Should -Be 'true'
       $template.installerScriptFullPathExists | Should -Be 'true'
@@ -21,27 +21,9 @@ Describe "Templates" {
   }
   Context 'Inventory Files' {
     It 'Generates inventory file' {
-      $template = [WMUSF_SetupTemplate]::new("DBC\1011\full")
+      $template = [WMUSF_SetupTemplate]::new("Example")
       $r = $template.GenerateInventoryFile()
       $r.Code | Should -Be 0
-    }
-
-    It 'Checks templates default values' {
-      Set-DefaultWMSCRIPT_Vars
-      (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "Manage01"
-      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=Manage01'
-    }
-
-    It 'Checks templates default values not overwriding provided values part 1' {
-      Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "AnotherPassword"
-      Set-DefaultWMSCRIPT_Vars
-      (Get-Variable -Name "WMSCRIPT_adminPassword" -Scope Global).Value | Should -Be "AnotherPassword"
-    }
-
-    It 'Checks templates default values not overwriding provided values part 2' {
-      Set-Variable -Name "WMSCRIPT_adminPassword" -Scope Global -Value "YetAnotherPassword"
-      Set-DefaultWMSCRIPT_Vars
-      'adminPassword=${WMSCRIPT_adminPassword}' | Invoke-EnvironmentSubstitution | Should -Be 'adminPassword=YetAnotherPassword'
     }
   }
 
@@ -62,6 +44,34 @@ Describe "Templates" {
       $audit = [WMUSF_Audit]::GetInstance()
       $audit.LogD("Generated payload for products image download script is: " + $pl.PayloadString)
     }
+  }
+
+  Context 'Properties' {
+
+    It 'Validates default properties are set correctly' {
+      $lAudit = [WMUSF_Audit]::GetInstance()
+      $defaultProperties = [WMUSF_SetupTemplate]::defaultGlobalProperties
+      $defaultProperties | Should -Not -Be $null
+      $defaultProperties | Should -BeOfType [hashtable]
+      $defaultProperties.ContainsKey('WMSCRIPT_HostName') | Should -Be $true
+      $defaultProperties['WMSCRIPT_HostName'] | Should -Be 'localhost'
+    }
+
+    It 'Checks the template properties with missing key' {
+      $template = [WMUSF_SetupTemplate]::new("Example")
+      $r = $template.AssureSetupProperties()
+      $r.Code | Should -be 1
+      "AAA ${WMSCRIPT_HostName} XX" | Invoke-EnvironmentSubstitution | Should -Be 'AAA  XX'
+    }
+
+    It 'Checks the template properties with explict env key' {
+      $env:WMSCRIPT_OtherProperty = 'YYY'
+      $template = [WMUSF_SetupTemplate]::new("Example")
+      $r = $template.AssureSetupProperties()
+      $r.Code | Should -be 0
+      "AAA ${WMSCRIPT_HostName} XX" | Invoke-EnvironmentSubstitution | Should -Be 'AAA localhost XX'
+    }
+
   }
 
   # TODO: move

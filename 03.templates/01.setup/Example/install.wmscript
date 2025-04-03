@@ -8,3 +8,4 @@ InstallDir=c:\ThisShouldBeOverwrittenByCommandLine
 ##### Parameters
 HostName=${WMSCRIPT_HostName}
 StartMenuFolder=${WMSCRIPT_StartMenuFolder}
+OtherProperty=${WMSCRIPT_OtherProperty}

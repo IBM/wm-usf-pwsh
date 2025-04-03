@@ -1,0 +1,17 @@
+e2ei/11/LIC_5.7.3.0.LATEST/LICSharedLibsJava/LICSharedLibsJava
+e2ei/11/SJP_11.0.12.0.LATEST/Infrastructure/sjp
+e2ei/11/TPL_10.11.0.0.LATEST/License/license
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/loggers
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppAnt
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppCommons
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppDB
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppGf
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppGfJaxb
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppMisc
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppModelling
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppParsers
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppSEC
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppServlet
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppSpring
+e2ei/11/TPS_10.11.0.0.LATEST/SCG/tppWS
+e2ei/11/WSC_10.11.0.0.LATEST/SCG/SCGCommon

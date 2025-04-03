@@ -7,6 +7,7 @@ Import-Module -Name "$PSScriptRoot/wm-usf-utils.psm1" -Force
 
 class WMUSF_SetupTemplate {
   static [string] $baseTemplatesFolderFolder = [WMUSF_SetupTemplate]::GetBaseTemplatesFolder()
+  static [hashtable] $defaultGlobalProperties = [WMUSF_SetupTemplate]::LoadDefaultGlobalProperties()
 
   [WMUSF_Audit] $audit
   [string]$id = "N/A"
@@ -95,6 +96,21 @@ class WMUSF_SetupTemplate {
   hidden static [string] GetBaseTemplatesFolder() {
     return $PSScriptRoot + [IO.Path]::DirectorySeparatorChar + ".." + [IO.Path]::DirectorySeparatorChar `
       + "03.templates" + [IO.Path]::DirectorySeparatorChar + "01.setup"
+  }
+
+  hidden static [Hashtable] LoadDefaultGlobalProperties() {
+    $lAudit = [WMUSF_Audit]::GetInstance()
+    $folder = [WMUSF_SetupTemplate]::GetBaseTemplatesFolder()
+    $lAudit.LogD("Default global properties folder: " + $folder)
+    $file = $folder + [IO.Path]::DirectorySeparatorChar + "global.setup.default.properties"
+    $lAudit.LogD("Default global properties file: " + $file)
+    if (-Not (Test-Path $file -PathType Leaf)) {
+      $lAudit.LogW("Default global properties file " + $file + " does not exist. Expect issues with templates requirring default properties.")
+      return $null
+    }
+    $props = convertfrom-stringdata(Get-Content -Path $file -Raw)
+    $lAudit.LogD("Default global properties count: " + $props.Count)
+    return $props
   }
 
   [string] GetDownloadServerUrl() {
@@ -616,6 +632,75 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
+    return $r
+  }
+
+  [WMUSF_Result] AssureSetupProperties() {
+    $r = [WMUSF_Result]::new()
+    $defaultPropsFile = $this.templateFolderFullPath + [IO.Path]::DirectorySeparatorChar + "default.properties"
+    if (-Not (Test-Path $defaultPropsFile -PathType Leaf)) {
+      $r.Description = "Default properties file not found: " + $defaultPropsFile
+      $r.Code = 1
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
+    $content = Get-Content -Path $defaultPropsFile -Raw
+
+    $props = ConvertFrom-StringData $content
+
+    # First pass - assure values per key
+    $newProps = @{}
+    foreach ($key in $props.Keys) {
+      $this.audit.LogD("Key: " + $key)
+      $this.audit.LogD("Value: " + $props[$key])
+      ## Env Var is the first choice
+      $vEnv = (Get-ChildItem "Env:$key").Value
+      if ($null -eq $vEnv -or "" -eq $vEnv) {
+        $this.audit.LogD("No environment value for key: " + $key + ". Hunting for default values...")
+        ## Local Template is the second choice
+        if ($null -eq $props[$key] -or "" -eq $props[$key]) {
+          $this.audit.LogD("No local template value for key: " + $key + ". Hunting for global default values...")
+          ## Global Template is the third choice
+          $v = [WMUSF_SetupTemplate]::defaultGlobalProperties[$key]
+          if ($null -eq $v -or "" -eq $v) {
+            $this.audit.LogE("Cannot resolve any value for key: " + $key)
+            $r.Errors += "Cannot resolve any value for key: " + $key
+          }
+          else {
+            $this.audit.LogD("Considering global framework default value for key: " + $key + " to " + $v)
+            $newProps[$key] = $v
+          }
+        }
+        else {
+          $this.audit.LogD("Considering local template default value for key: " + $key + " = " + $props[$key])
+          $newProps[$key] = $props[$key]
+        }
+      }
+      else {
+        $this.audit.LogD("Considering environment value for key: " + $key + " with value: " + $vEnv)
+        $newProps[$key] = $vEnv
+      }
+    }
+    if ($r.Errors.Count -gt 0) {
+      $r.Description = "Setup properties not assured, cannot continue with the template setup!"
+      $r.Code = 1
+      $msg = $r.Description + ":`n" #+ ( $r.Errors -join "`" )
+      foreach ($error in $r.Errors) {
+        $msg += $error + "`n"
+      }
+      $this.audit.LogE($msg)
+      return $r
+    }
+
+    # Second pass - globalise the values for substitution in the wmscript
+    foreach ($key in $newProps.Keys) {
+      Set-Variable -Name "${key}" -Scope Global -Value $newProps[$key]
+      $this.audit.LogD("Globalizing key: " + $key + " with value: " + $newProps[$key])
+    }
+
+    $r.Code = 0
+    $r.Description = "Setup properties assured"
     return $r
   }
 }
