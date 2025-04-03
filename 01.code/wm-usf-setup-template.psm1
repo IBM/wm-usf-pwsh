@@ -565,7 +565,7 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] AssureImagesZipFiles() {
     $this.audit.LogD("Assuring images zip files for template " + $this.id)
     $r = [WMUSF_Result]::new()
-    $r1 = $this.AssureproductsZipFileFullPath()
+    $r1 = $this.AssureProductsZipFile()
     if ($r1.Code -ne 0) {
       $r.Description = "Images zip files cannot be assured, exitting with error"
       $this.audit.LogE($r.Description)
