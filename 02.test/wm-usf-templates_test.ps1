@@ -2,6 +2,8 @@ Using module "../01.code/wm-usf-audit.psm1"
 Using module "../01.code/wm-usf-result.psm1"
 Using module "../01.code/wm-usf-setup-template.psm1"
 
+Import-Module -Name "$PSScriptRoot/../01.code/wm-usf-setup-template.psm1"
+
 Describe "Templates" {
   Context 'Fundamentals' {
 

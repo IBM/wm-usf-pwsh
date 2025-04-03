@@ -3,7 +3,7 @@ Using module "./wm-usf-audit.psm1"
 Using module "./wm-usf-result.psm1"
 Using module "./wm-usf-downloader.psm1"
 
-Import-Module -Name "$PSScriptRoot./wm-usf-utils.psm1" -Force
+Import-Module -Name "$PSScriptRoot/wm-usf-utils.psm1" -Force
 
 class WMUSF_SetupTemplate {
   static [string] $baseTemplatesFolderFolder = [WMUSF_SetupTemplate]::GetBaseTemplatesFolder()
@@ -33,6 +33,7 @@ class WMUSF_SetupTemplate {
   WMUSF_SetupTemplate([string] $id) {
     $this.init($id, 'false')
   }
+  
   WMUSF_SetupTemplate([string] $id, [string] $useTodayFixes) {
     $this.init($id, $useTodayFixes)
   }
@@ -98,6 +99,7 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] GetProductList() {
+    $this.audit.LogD("Getting product list for template " + $this.id)
     $r = [WMUSF_Result]::new()
     if ($this.productsListExists -eq 'true') {
       $r = [WMUSF_Result]::GetSuccessResult()
@@ -111,6 +113,7 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] GenerateProductsImageDownloadScript() {
+    $this.audit.LogD("Generating products image download script for template " + $this.id)
     $r = [WMUSF_Result]::new()
     if ($this.productsListExists -eq 'false') {
       $r = [WMUSF_Result]::GetSimpleResult(1, "Products list file not found", $this.audit)
@@ -141,6 +144,7 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] AssureProductsZipFile() {
+    $this.audit.LogD("Assuring products zip file for template " + $this.id)
     $r = [WMUSF_Result]::new()
     if (Test-Path $this.productsZipFile -PathType Leaf) {
       $r = [WMUSF_Result]::GetSuccessResult()
@@ -194,6 +198,7 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] GenerateInventoryFile() {
+    $this.audit.LogD("Generating inventory file for template " + $this.id)
     $r = [WMUSF_Result]::new()
     # TODO: generalize these strings, for now they are constants
     $sumPlatformString = "W64"
@@ -258,6 +263,8 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] GenerateInstallScript([string] $scriptFolder, [string] $scriptFileName) {
+    $this.audit.LogD("Generating install script file in folder $scriptFolder")
+    $this.audit.LogD("Using script file name: " + $scriptFileName)
     $r = [WMUSF_Result]::new()
 
     $destFolder = $scriptFolder
@@ -325,10 +332,13 @@ class WMUSF_SetupTemplate {
     $escaped = $escaped -replace ':', '\:'
     return $escaped
   }
+  
   # TODO: this methods would stay better in the downloader
   [WMUSF_Result] GenerateFixApplyScriptFile([string] $scriptFolder, [string] $installDir, [string] $imageFile) {
 
     $this.audit.LogD("Generating Fix Apply Script file in folder $scriptFolder")
+    $this.audit.LogD("Using install directory: " + $installDir)
+    $this.audit.LogD("Using image file: " + $imageFile)
     $r = [WMUSF_Result]::new()
     $scriptFile = $scriptFolder + [IO.Path]::DirectorySeparatorChar + "apply-fixes.wmscript"
 
@@ -349,6 +359,7 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] DownloadTodayFixes() {
+    $this.audit.LogD("Downloading today's fixes zip file for template " + $this.id)
     $r = [WMUSF_Result]::new()
     if (-Not (Test-Path $this.todayFixesFolder -PathType Container)) {
       New-Item -Path $this.todayFixesFolder -ItemType Directory
@@ -461,7 +472,7 @@ class WMUSF_SetupTemplate {
   }
 
   [WMUSF_Result] ResolveFixesFoldersNames() {
-
+    $this.audit.LogD("Resolving fixes folders names for template " + $this.id)
     $r = [WMUSF_Result]::new()
 
     $fixesBaseFolder = $this.imagesFolder + [IO.Path]::DirectorySeparatorChar + "fixes" `
