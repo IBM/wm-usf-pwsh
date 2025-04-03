@@ -213,13 +213,21 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] GenerateInventoryFile() {
     $this.audit.LogD("Generating inventory file for template " + $this.id)
     $this.ResolveFixesFoldersNames()
-    if ($this.currentFixesFolderFullPath -eq "N/A") {
-      $temp = [System.IO.Path]::GetTempPath()
-      $temp.Substring(0, $temp.Length - 1)
-      $this.audit.LogE("Fixes folder not resolved, using the default temmporary folder to genereate the inventory file: $temp")
-      return $this.GenerateInventoryFile($temp)
+    if ($this.useTodayFixes -eq 'true') {
+      $this.audit.LogD("Using today's fixes folder: " + $this.todayFixesFolderFullPath)
+      return $this.GenerateInventoryFile($this.todayFixesFolderFullPath)
     }
-    return $this.GenerateInventoryFile($this.currentFixesFolderFullPath)
+    else {
+      if ($this.currentFixesFolderFullPath -eq "N/A") {
+        $temp = [System.IO.Path]::GetTempPath()
+        $temp.Substring(0, $temp.Length - 1)
+        $this.audit.LogE("Fixes folder not resolved, using the default temmporary folder to genereate the inventory file: $temp")
+        return $this.GenerateInventoryFile($temp)
+      }
+      else {
+        return $this.GenerateInventoryFile($this.currentFixesFolderFullPath)
+      }
+    }
   }
 
   [WMUSF_Result] GenerateInventoryFile([string] $destinationFolder) {
