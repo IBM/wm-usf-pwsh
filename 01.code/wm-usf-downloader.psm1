@@ -1,6 +1,7 @@
 # This class encapsulates the functionality to download binaries from webMethods download center
 Using module "./wm-usf-audit.psm1"
 Using module "./wm-usf-result.psm1"
+
 class WMUSF_Downloader {
   static [WMUSF_Downloader] $Instance = [WMUSF_Downloader]::GetInstance()
   hidden static [WMUSF_Downloader] $_instance = [WMUSF_Downloader]::new()
@@ -41,7 +42,6 @@ class WMUSF_Downloader {
     $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
     $this.audit.LogI("WMUSF_Downloader Update Manager Home: " + $this.updateManagerHome)
   }
-
 
   hidden static [WMUSF_Downloader] GetInstance() {
     return [WMUSF_Downloader]::_instance
@@ -99,6 +99,7 @@ class WMUSF_Downloader {
     [string]$fileName,
     [string]$expectedHash
   ) {
+    $this.audit.LogD("Assuring file ${fullOutputDirectoryPath}" + [IO.Path]::DirectorySeparatorChar + "${fileName}")
     return $this.AssureWebFileWithChecksumVerification(
       $url,
       $fullOutputDirectoryPath,
@@ -115,7 +116,6 @@ class WMUSF_Downloader {
     [string]$expectedHash,
     [string]$hashAlgorithm
   ) {
-
     $r = [WMUSF_Result]::new()
     # Calculate the SHA256 hash of the downloaded file
     $fullFilePath = ${fullOutputDirectoryPath} + [IO.Path]::DirectorySeparatorChar + ${fileName}
@@ -161,7 +161,6 @@ class WMUSF_Downloader {
     [string]${fullOutputDirectoryPath},
     [string]${fileName}
   ) {
-
     $this.audit.LogD("Assuring default installer for Windows, parameters received: 1: ${fullOutputDirectoryPath} 2: ${fileName}")
     $r = $this.AssureWebFileWithChecksumVerification(
       [WMUSF_Downloader]::defaultInstallerDownloadURL,
@@ -181,16 +180,16 @@ class WMUSF_Downloader {
     return $r
   }
 
-
   [WMUSF_Result] AssureDefaultUpdateManagerBootstrap() {
+    $this.audit.LogD("Assuring default boostrap for Update Manager, no parameters received")
     return $this.AssureDefaultUpdateManagerBootstrap($this.cacheDir, [WMUSF_Downloader]::defaultWmumBootstrapFileName)
   }
 
-
   [WMUSF_Result] AssureDefaultUpdateManagerBootstrap(
-    [string]${fullOutputDirectoryPath} = $this.cacheDir,
-    [string]${fileName} = $defaultCceBootstrapFileName) {
-    $this.audit.LogI("Assuring default boostrap for Update Manager")
+    [string]${fullOutputDirectoryPath},
+    [string]${fileName}
+  ) {
+    $this.audit.LogD("Assuring default boostrap for Update Manager. Parameters received: 1: ${fullOutputDirectoryPath} 2: ${fileName}")
     $r1 = $this.AssureWebFileWithChecksumVerification(
       [WMUSF_Downloader]::defaultWmumBootstrapDownloadURL,
       ${fullOutputDirectoryPath},
@@ -198,27 +197,43 @@ class WMUSF_Downloader {
       [WMUSF_Downloader]::defaultWmumBootstrapFileHash,
       [WMUSF_Downloader]::defaultWmumBootstrapFileHashAlgorithm
     )
-    $this.currentUpdateManagerBootstrapBinary = $r1.PayloadString
+    if ( $r1.Code -ne 0) {
+      $this.audit.LogE("Error assuring default Update Manager bootstrap binary")
+      return $r1
+    }
+    else {
+      $this.audit.LogD("Current Update Manager bootstrap binary: " + $r1.PayloadString)
+      $this.currentUpdateManagerBootstrapBinary = $r1.PayloadString
+    }
     return $r1
   }
 
-
   [WMUSF_Result] AssureDefaultCceBootstrap() {
+    $this.audit.LogD("Assuring default boostrap for CCE, no parameters received")
     return $this.AssureDefaultCceBootstrap($this.cacheDir, [WMUSF_Downloader]::defaultCceBootstrapFileName)
   }
 
   [WMUSF_Result] AssureDefaultCceBootstrap(
-    [string]${fullOutputDirectoryPath} = $this.cacheDir,
-    [string]${fileName} = $defaultCceBootstrapFileName
+    [string]${fullOutputDirectoryPath},
+    [string]${fileName}
   ) {
-    $this.audit.LogI("Assuring default boostrap for CCE")
-    return $this.AssureWebFileWithChecksumVerification(
+    $this.audit.LogI("Assuring default boostrap for CCE, parameters received: 1: ${fullOutputDirectoryPath} 2: ${fileName}")
+    $r = $this.AssureWebFileWithChecksumVerification(
       [WMUSF_Downloader]::defaultCceBootstrapDownloadURL,
       ${fullOutputDirectoryPath},
       ${fileName},
       [WMUSF_Downloader]::defaultCceBootstrapFileHash,
       [WMUSF_Downloader]::defaultCceBootstrapFileHashAlgorithm
     )
+    if ( $r.Code -ne 0) {
+      $this.audit.LogE("Error assuring default CCE bootstrap binary")
+      return $r
+    }
+    else {
+      $this.audit.LogD("Current CCE bootstrap binary: " + $r.PayloadString)
+      $this.currentUpdateManagerBootstrapBinary = $r.PayloadString
+    }
+    return $r
   }
 
   [WMUSF_Result] GetInstallerBinary(
@@ -237,7 +252,9 @@ class WMUSF_Downloader {
       $r.PayloadString = $installerBinaryPath
     }
     else {
-      return [WMUSF_Result]::GetSimpleResult(1, "Installer binary not found", $this.audit)
+      $r.Code = 1
+      $r.Description = "Installer binary not found"
+      $this.audit.LogE($r.Description)
     }
     return $r
   }
@@ -262,12 +279,17 @@ class WMUSF_Downloader {
       $r.Description = "Error bootstrapping Update Manager: " + $r2.Description
       $r.NestedResults = $r2
     }
-    $r.Code = 0
-    $r.Description = "Update Manager setup OK"
+    else {
+      $this.audit.LogI("Update Manager bootstrap completed successfully")
+      $r.Messages += "Update Manager bootstrap completed successfully"
+      $r.Code = 0
+      $r.Description = "Update Manager setup OK"
+    }
     return $r
   }
 
   [WMUSF_Result] BootstrapUpdateManager() {
+    $this.audit.LogI("Bootstrapping Update Manager, no parameters received")
     $f = $this.currentUpdateManagerBootstrapBinary
     if ($f -eq "N/A") {
       $this.audit.LogE("Update Manager bootstrap binary not yet initialized, attempting to do it now...")
@@ -282,7 +304,7 @@ class WMUSF_Downloader {
   }
 
   [WMUSF_Result] BootstrapUpdateManager([string]$BootStrapBinaryFile) {
-
+    $this.audit.LogI("Bootstrapping Update Manager, parameters received: 1: $BootStrapBinaryFile")
     $r = [WMUSF_Result]::new()
 
     if (-Not (Test-Path $BootStrapBinaryFile -PathType Leaf)) {
@@ -321,15 +343,25 @@ class WMUSF_Downloader {
     }
     $this.audit.LogI("Bootstrapping UpdateManager with the following command")
     $this.audit.LogI("$cmd")
-    $this.audit.InvokeCommand("$cmd", "BootstrapUpdMgr")
+    $rCmd = $this.audit.InvokeCommand("$cmd", "BootstrapUpdMgr")
     Pop-Location
-
-    $r.Code = 0
-    $r.Description = "Update Manager Installed"
+    if ($rCmd.Code -ne 0) {
+      $rCmd.Description = "Error bootstrapping Update Manager: " + $rCmd.Description
+      $this.audit.LogE($rCmd.Description)
+      $r.NestedResults = $rCmd
+      $r.Code = 1
+    }
+    else {
+      $this.audit.LogI("Update Manager bootstrap completed successfully")
+      $r.Messages += "Update Manager bootstrap completed successfully"
+      $r.Code = 0
+      $r.Description = "Update Manager Installed"
+    }
     return $r
   }
 
   [WMUSF_Result] ExecuteUpdateManagerCommand([string] $cmd, [string] $auditTag) {
+    $this.audit.LogI("Executing Update Manager command, parameters received: 1: * 2: $auditTag")
     $r = [WMUSF_Result]::new()
 
     if (-Not (Test-Path ($this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin') -PathType Container)) {
