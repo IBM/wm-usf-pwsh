@@ -12,6 +12,7 @@ class WMUSF_Downloader {
   [string] $updateManagerHome
   [string] $currentInstallerBinary
   [string] $currentUpdateManagerBootstrapBinary
+  [string] $currentCceBootstrapBinary
 
   # Download constants
   #TODO check if Set-Variable test -Option Constant -Value 100 approach is better
@@ -32,12 +33,15 @@ class WMUSF_Downloader {
 
   [Guid] $WMUSF_DownloaderTarget = [Guid]::NewGuid()
 
-  hidden WMUSF_Downloader() {
+
+  hidden WMUSF_Downloader() { $this.init() }
+  hidden init() {
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.cacheDir = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
     $this.updateManagerHome = ${env:WMUSF_UPD_MGR_HOME} ?? [System.IO.Path]::GetTempPath() + 'WmUpdateMgr'
     $this.currentInstallerBinary = ${env:WMUSF_INSTALLER_BINARY} ?? "N/A"
     $this.currentUpdateManagerBootstrapBinary = ${env:WMUSF_UPD_MGR_BOOTSTRAP_BINARY} ?? "N/A"
+    $this.currentCceBootstrapBinary = ${env:WMUSF_CCE_BOOTSTRAP_BINARY} ?? "N/A"
     $this.onlineMode = ${env:WMUSF_DOWNLOADER_ONLINE_MODE} ?? 'true'
     $this.audit.LogI("WMUSF_Downloader initialized")
     $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
@@ -245,8 +249,8 @@ class WMUSF_Downloader {
       return $r
     }
     else {
-      $this.currentUpdateManagerBootstrapBinary = $fullOutputDirectoryPath + [IO.Path]::DirectorySeparatorChar + $fileName
-      $this.audit.LogD("Set current CCE bootstrap binary to " + $this.currentUpdateManagerBootstrapBinary)
+      $this.currentCceBootstrapBinary = $fullOutputDirectoryPath + [IO.Path]::DirectorySeparatorChar + $fileName
+      $this.audit.LogD("Set current CCE bootstrap binary to " + $this.currentCceBootstrapBinary)
     }
     return $r
   }
