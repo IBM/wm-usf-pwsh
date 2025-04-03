@@ -23,15 +23,15 @@ class WMUSF_Installation {
     $this.init($templateId, $installPath, "", "")
   }
 
-  WMUSF_Installation([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenfixesZipFullPath) {
-    $this.init($templateId, $installPath, $givenproductsZipFullPath, $givenfixesZipFullPath)
+  WMUSF_Installation([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenFixesZipFullPath) {
+    $this.init($templateId, $installPath, $givenproductsZipFullPath, $givenFixesZipFullPath)
   }
 
-  hidden init([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenfixesZipFullPath) {
+  hidden init([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenFixesZipFullPath) {
     $this.TemplateId = $templateId
     $this.InstallDir = $installPath
     $this.productsZipFullPath = $givenproductsZipFullPath
-    $this.fixesZipFullPath = $givenfixesZipFullPath
+    $this.fixesZipFullPath = $givenFixesZipFullPath
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.audit.LogI("WMUSF Installation Subsystem initialized")
     $this.audit.LogI("WMUSF Installation TemplateId: " + $this.TemplateId)
@@ -43,7 +43,7 @@ class WMUSF_Installation {
     return $this.InstallProducts($null, $null, 'false')
   }
 
-  [WMUSF_Result] InstallProducts([string] $givenproductsZipFullPath, [string] $givenfixesZipFullPath, [string] $skipFixes) {
+  [WMUSF_Result] InstallProducts([string] $givenProductsZipFullPath, [string] $givenFixesZipFullPath, [string] $skipFixes) {
     $r = [WMUSF_Result]::new()
     
     # TODO: expand for given zip files
@@ -105,11 +105,11 @@ class WMUSF_Installation {
   }
 
   [WMUSF_Result] Patch() {
-    $this.ResolveFixesFoldersNames()
+    $this.template.ResolveFixesFoldersNames()
     return $this.Patch($this.template.latestfixesZipFullPath)
   }
 
-  [WMUSF_Result] Patch([string] $givenfixesZipFullPath) {
+  [WMUSF_Result] Patch([string] $givenFixesZipFullPath) {
     $r = [WMUSF_Result]::new()
     if (-Not (Test-Path -Path $this.template.latestfixesZipFullPath -PathType Leaf)) {
       $r.Code = 2
@@ -118,7 +118,7 @@ class WMUSF_Installation {
       return $r
     }
 
-    $r1 = $this.template.GenerateFixApplyScriptFile($this.audit.LogSessionDir, $this.InstallDir, $givenfixesZipFullPath)
+    $r1 = $this.template.GenerateFixApplyScriptFile($this.audit.LogSessionDir, $this.InstallDir, $givenFixesZipFullPath)
     if ($r1.Code -ne 0) {
       $r.Code = 1
       $r.Description = "Error generating fix apply script, code: " + $r.Code
@@ -131,7 +131,14 @@ class WMUSF_Installation {
     $cmd = '.' + [IO.Path]::DirectorySeparatorChar + 'UpdateManagerCMD.bat'
     $cmd += ' -readScript "' + $fixScriptFile + '"'
 
-    $this.audit.InvokeCommand($cmd, "FixApply")
+    $downloader = [WMUSF_Downloader]::GetInstance()
+    $r2 = $downloader.ExecuteUpdateManagerCommand($cmd, "FixApply")
+    if ($r2.Code -ne 0) {
+      $r.Code = 3
+      $r.Description = "Error applying fixes, code: " + $r.Code
+      $r.NestedResults += $r2
+      $this.audit.LogE($r.Description)
+    }
     return $r
   }
 }

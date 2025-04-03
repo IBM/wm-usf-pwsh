@@ -6,5 +6,5 @@ selectedFixes=
 InstallDir=c:\ThisShouldBeOverwrittenByCommandLine
 #imageFile=
 ##### Parameters
-HostName=${WMSCRIPT_HostName}
-StartMenuFolder=${WMSCRIPT_StartMenuFolder}
+HostName=${env:WMSCRIPT_HostName}
+StartMenuFolder=${env:WMSCRIPT_StartMenuFolder}

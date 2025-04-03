@@ -345,13 +345,15 @@ class WMUSF_SetupTemplate {
     ("InstallProducts=" + $pl.PayloadString) | Out-File -FilePath $destFile -Append -Encoding ascii
     $iFile = $this.EscapeWmscriptString($this.productsZipFullPath)
     ("imageFile=" + $iFile) | Out-File -FilePath $destFile -Append -Encoding ascii
-    Select-String -Path $destFile -Pattern "WMSCRIPT_" -Quiet
-    if ($scriptContent -match "WMSCRIPT_") {
-      $r.Description = "Error generating install script file, exiting with error"
-      $r.Code = 3
-      $this.audit.LogE($r.Description)
-      return $r
-    }
+
+    # TODO: find a way to detect missing substitutions in the script file
+    # Select-String -Path $destFile -Pattern "WMSCRIPT_" -Quiet
+    # if ($scriptContent -match "WMSCRIPT_") {
+    #   $r.Description = "Error generating install script file, exiting with error"
+    #   $r.Code = 3
+    #   $this.audit.LogE($r.Description)
+    #   return $r
+    # }
 
     $checkUnsubstitutedRows = Select-String -Path ${destFile} -Pattern "WMSCRIPT_"
     if ( 0 -ne $checkUnsubstitutedRows.Count) {

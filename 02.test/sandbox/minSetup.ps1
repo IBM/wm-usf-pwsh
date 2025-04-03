@@ -12,4 +12,8 @@ if ($r.Code -ne 0) {
   $r
   exit 1
 }
-$audit.LogI("Sandbox test -------------------> Completed installation of products")
+$audit.LogI("Sandbox test -------------------> Completed installation of products, Patching the installation...")
+
+$installation.Patch()
+
+$audit.LogI("Sandbox test -------------------> Completed patching of products too")

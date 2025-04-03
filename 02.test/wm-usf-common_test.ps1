@@ -13,6 +13,12 @@ Describe "Basics" {
       $env:b = $null
       $inString | Invoke-EnvironmentSubstitution | Should -Be 'aa  cc'
     }
+
+    It 'Substitutes absent vars 2' {
+      $inString = 'aa ${env:c} cc'
+      $inString | Invoke-EnvironmentSubstitution | Should -Be 'aa  cc'
+    }
+
     # i.e. either env or global work
     It 'Substitutes Given Variable' {
       ${inString} = 'begin|${TestVariable1}|${TestVariable2}|${TestVariable3}|end'
