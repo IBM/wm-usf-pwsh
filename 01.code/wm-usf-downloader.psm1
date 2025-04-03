@@ -7,8 +7,9 @@ class WMUSF_Downloader {
   hidden static [WMUSF_Downloader] $_instance = [WMUSF_Downloader]::new()
   hidden [WMUSF_Audit] $audit
   hidden [string] $cacheDir
-  [string] $updateManagerHome
   [string] $onlineMode
+  # These, by convention, are always full paths
+  [string] $updateManagerHome
   [string] $currentInstallerBinary
   [string] $currentUpdateManagerBootstrapBinary
 
@@ -41,6 +42,9 @@ class WMUSF_Downloader {
     $this.audit.LogI("WMUSF_Downloader initialized")
     $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
     $this.audit.LogI("WMUSF_Downloader Update Manager Home: " + $this.updateManagerHome)
+    $this.audit.LogI("WMUSF_Downloader Installer Binary: " + $this.currentInstallerBinary)
+    $this.audit.LogI("WMUSF_Downloader Update Manager Bootstrap Binary: " + $this.currentUpdateManagerBootstrapBinary)
+    $this.audit.LogI("WMUSF_Downloader Online Mode: " + $this.onlineMode)
   }
 
   hidden static [WMUSF_Downloader] GetInstance() {
@@ -140,13 +144,24 @@ class WMUSF_Downloader {
       }
     }
     $this.audit.LogD("file $fullFilePath does not exist. Attempting to download...")
-    $r = $this.GetWebFileWithChecksumVerification(
+    $r1 = $this.GetWebFileWithChecksumVerification(
       "$url",
       "$fullOutputDirectoryPath",
       "$fileName",
       "$expectedHash",
       "$hashAlgorithm"
     )
+    if ($r1.Code -ne 0) {
+      $r.Description = "Error downloading file: " + $r1.Description
+      $this.audit.LogE($r.Description)
+      $r.Code = 1
+    }
+    else {
+      $this.audit.LogI("File downloaded successfully")
+      $r.Code = 0
+      $r.Description = "Success"
+      $r.PayloadString = $fullFilePath
+    }
   
     $this.audit.LogD("Resolve-WebFileWithChecksumVerification returns " + $r.Code)
     return $r
@@ -202,8 +217,8 @@ class WMUSF_Downloader {
       return $r1
     }
     else {
-      $this.audit.LogD("Current Update Manager bootstrap binary: " + $r1.PayloadString)
-      $this.currentUpdateManagerBootstrapBinary = $r1.PayloadString
+      $this.currentUpdateManagerBootstrapBinary = $fullOutputDirectoryPath + [IO.Path]::DirectorySeparatorChar + $fileName
+      $this.audit.LogD("Set current Update Manager bootstrap binary to " + $this.currentUpdateManagerBootstrapBinary)
     }
     return $r1
   }
@@ -230,8 +245,8 @@ class WMUSF_Downloader {
       return $r
     }
     else {
-      $this.audit.LogD("Current CCE bootstrap binary: " + $r.PayloadString)
-      $this.currentUpdateManagerBootstrapBinary = $r.PayloadString
+      $this.currentUpdateManagerBootstrapBinary = $fullOutputDirectoryPath + [IO.Path]::DirectorySeparatorChar + $fileName
+      $this.audit.LogD("Set current CCE bootstrap binary to " + $this.currentUpdateManagerBootstrapBinary)
     }
     return $r
   }
@@ -292,15 +307,18 @@ class WMUSF_Downloader {
     $this.audit.LogI("Bootstrapping Update Manager, no parameters received")
     $f = $this.currentUpdateManagerBootstrapBinary
     if ($f -eq "N/A") {
-      $this.audit.LogE("Update Manager bootstrap binary not yet initialized, attempting to do it now...")
+      $this.audit.LogD("Update Manager bootstrap binary not yet initialized, attempting to do it now with the default values...")
       $r1 = $this.AssureDefaultUpdateManagerBootstrap()
       if ($r1.Code -ne 0) {
         $this.audit.LogE("Error assuring default Update Manager bootstrap binary")
         return $r1
       }
-      $f = $r1.PayloadString
     }
-    return $this.BootstrapUpdateManager($this.cacheDir + [IO.Path]::DirectorySeparatorChar + $f)
+    if (-Not (Test-Path $this.currentUpdateManagerBootstrapBinary -PathType Leaf)) {
+      $this.audit.LogE("Update Manager bootstrap binary not assured properly, it should exit, but it does not: " + $this.currentUpdateManagerBootstrapBinary)
+      return [WMUSF_Result]::GetSimpleResult(3, "Bootstrap binary not found", $this.audit)
+    }
+    return $this.BootstrapUpdateManager($this.currentUpdateManagerBootstrapBinary)
   }
 
   [WMUSF_Result] BootstrapUpdateManager([string]$BootStrapBinaryFile) {
