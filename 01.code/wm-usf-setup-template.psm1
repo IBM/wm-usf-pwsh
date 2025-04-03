@@ -306,6 +306,15 @@ class WMUSF_SetupTemplate {
       $this.audit.LogE($r.Description)
       return $r
     }
+
+    $pl = $this.GetProductList()
+    if ($pl.Code -ne 0) {
+      $r.Description = "Products list file not found, cannot use this template"
+      $r.Code = 2
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+
     $destFolder = $ephmeralScriptFolder
     if ($null -eq $ephmeralScriptFolder -or "" -eq $ephmeralScriptFolder) {
       $destFolder = $this.audit.LogSessionDir
@@ -324,10 +333,11 @@ class WMUSF_SetupTemplate {
     $templateContent = Get-Content -Path $this.installerScriptFullPath -Raw
     $scriptContent = $templateContent | Invoke-EnvironmentSubstitution
     $scriptContent | Out-File -FilePath $destFile -Encoding ascii
+    ("InstallProducts=" + $pl.PayloadString) | Out-File -FilePath $destFile -Append -Encoding ascii
     Select-String -Path $destFile -Pattern "WMSCRIPT_" -Quiet
     if ($scriptContent -match "WMSCRIPT_") {
       $r.Description = "Error generating install script file, exiting with error"
-      $r.Code = 2
+      $r.Code = 3
       $this.audit.LogE($r.Description)
       return $r
     }
@@ -335,7 +345,7 @@ class WMUSF_SetupTemplate {
     $checkUnsubstitutedRows = Select-String -Path ${destFile} -Pattern "WMSCRIPT_"
     if ( 0 -ne $checkUnsubstitutedRows.Count) {
       $r.Description = "Substitutions incomplete for the script file"
-      $r.Code = 3
+      $r.Code = 4
       $r.PayloadString = $checkUnsubstitutedRows -join "`n"
       $this.audit.LogE($r.Description)
       return $r
