@@ -26,7 +26,7 @@ class WMUSF_SetupTemplate {
   [string]$installerDownloadScriptFullPathExists = 'false'
 
   [string]$productsFolderFullPath = "N/A"
-  [string]$productsZipFileFullPath = "N/A"
+  [string]$productsZipFullPath = "N/A"
 
   [string]$currentFixesFolderFullPath = "N/A"
   [string]$currentFixesZipFullPath = "N/A"
@@ -83,8 +83,8 @@ class WMUSF_SetupTemplate {
     $this.productsFolderFullPath = $this.imagesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "products"
     $this.productsFolderFullPath = $this.productsFolderFullPath + [IO.Path]::DirectorySeparatorChar + $id.Replace('\', [IO.Path]::DirectorySeparatorChar)
     $this.audit.LogD("Products folder for template: " + $this.productsFolderFullPath)
-    $this.productsZipFileFullPath = $this.productsFolderFullPath + [IO.Path]::DirectorySeparatorChar + "products.zip"
-    $this.audit.LogD("Products zip file for template: " + $this.productsZipFileFullPath)
+    $this.productsZipFullPath = $this.productsFolderFullPath + [IO.Path]::DirectorySeparatorChar + "products.zip"
+    $this.audit.LogD("Products zip file for template: " + $this.productsZipFullPath)
 
     $rrff = $this.ResolveFixesFoldersNames()
     if ($rrff.Code -ne 0) {
@@ -146,7 +146,7 @@ class WMUSF_SetupTemplate {
       # Workaround; installer wants this line even if it is overwritten by the commandline
       # Hypothesis: the installer MUST receive the file here nonetheless.
       # tried to overwrite it in the command line, but it produces strange effects, like deleting the original
-      $lines += "imageFile=" + $this.EscapeWmscriptString($this.productsZipFileFullPath)
+      $lines += "imageFile=" + $this.EscapeWmscriptString($this.productsZipFullPath)
       $r = [WMUSF_Result]::GetSuccessResult()
       $r.PayloadString = $lines -join "`n"
     }
@@ -157,11 +157,11 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] AssureProductsZipFile() {
     $this.audit.LogD("Assuring products zip file for template " + $this.id)
     $r = [WMUSF_Result]::new()
-    if (Test-Path $this.productsZipFileFullPath -PathType Leaf) {
+    if (Test-Path $this.productsZipFullPath -PathType Leaf) {
       $r = [WMUSF_Result]::GetSuccessResult()
-      $r.Description = "Products zip file already exists at location " + $this.productsZipFileFullPath + ", nothing to do"
+      $r.Description = "Products zip file already exists at location " + $this.productsZipFullPath + ", nothing to do"
       $r.Code = 0
-      $r.PayloadString = $this.productsZipFileFullPath
+      $r.PayloadString = $this.productsZipFullPath
       $this.audit.LogI($r.Description)
       return $r
     }
@@ -186,7 +186,7 @@ class WMUSF_SetupTemplate {
 
     $downloader = [WMUSF_Downloader]::GetInstance()
     $installerBinary = $downloader.GetInstallerBinary().PayloadString # Postponed error checking
-    $zipLocation = $this.productsZipFileFullPath
+    $zipLocation = $this.productsZipFullPath
 
     $cmd = "${installerBinary} -console -scriptErrorInteract no -debugLvl verbose "
     $cmd += "-debugFile ""$debugFile""  -readScript ""$scriptFile"" -writeImage ""${zipLocation}"" -user ""${user}"" -pass "
@@ -198,7 +198,7 @@ class WMUSF_SetupTemplate {
     if ($rExec.Code -eq 0) {
       $r.Description = "Products zip file created"
       $r.code = 0
-      $r.PayloadString = $this.productsZipFileFullPath
+      $r.PayloadString = $this.productsZipFullPath
       return $r
     }
     else {
@@ -483,7 +483,7 @@ class WMUSF_SetupTemplate {
     else {
       $r.Description = "Using latest fixes zip file: " + $this.latestFixesZipFullPath
       $this.audit.LogI($r.Description)
-      if (Test-Path $this.latestFixesZipFullPath -PathType Leaf) {
+      if ("N/A" -ne $this.latestFixesZipFullPath -and (Test-Path -Path $this.latestFixesZipFullPath -PathType Leaf)) {
         $r.Description = "Latest fixes folder already exists, nothing to do"
         $r.PayloadString = $this.latestFixesZipFullPath
         $r.Code = 0
@@ -528,7 +528,7 @@ class WMUSF_SetupTemplate {
       $this.latestFixesZipFullPath = $this.todayFixesZipFullPath
     }
     else {
-      $this.audit.LogD("Today's zipfixes folder does not exist: " + $this.todayFixesFolderFullPath)
+      $this.audit.LogD("Today's zip fixes folder does not exist: " + $this.todayFixesFolderFullPath)
       $this.audit.LogD("Computing the latest fixes folder...")
 
       # Compute the latest fixes folder
@@ -541,6 +541,8 @@ class WMUSF_SetupTemplate {
           if (Test-Path -Path ($latestFolder.FullName + [IO.Path]::DirectorySeparatorChar + "fixes.zip") -PathType Leaf) {
             $this.currentFixesFolderFullPath = $latestFolder.FullName
             $this.currentFixesZipFullPath = $this.currentFixesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "fixes.zip"
+            $this.latestFixesFolderFullPath = $this.currentFixesFolderFullPath
+            $this.latestFixesZipFullPath = $this.currentFixesZipFullPath
             $this.audit.LogD("Current fixes folder set to: " + $this.currentFixesFolderFullPath)
           }
           else {
