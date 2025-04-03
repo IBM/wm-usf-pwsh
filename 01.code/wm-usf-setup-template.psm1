@@ -332,7 +332,7 @@ class WMUSF_SetupTemplate {
     $escaped = $escaped -replace ':', '\:'
     return $escaped
   }
-  
+
   # TODO: this methods would stay better in the downloader
   [WMUSF_Result] GenerateFixApplyScriptFile([string] $scriptFolder, [string] $installDir, [string] $imageFile) {
 

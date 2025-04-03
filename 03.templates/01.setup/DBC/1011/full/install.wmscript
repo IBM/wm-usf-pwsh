@@ -3,7 +3,7 @@
 InstallLocProducts=
 selectedFixes=
 ##### Parameters that MUST be overwritten by the commandline
-#InstallDir=
+InstallDir=c:\ThisShouldBeOverwrittenByCommandLine
 #imageFile=
 ##### Parameters
 HostName=${WMSCRIPT_HostName}
