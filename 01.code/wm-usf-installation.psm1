@@ -5,59 +5,65 @@ Using module "./wm-usf-result.psm1"
 Using module "./wm-usf-downloader.psm1"
 Using module "./wm-usf-setup-template.psm1"
 Using module "./wm-usf-audit.psm1"
+using module "./wm-usf-update-manager.psm1"
 #       $audit.LogD("Read product list is: " + $pl.PayloadString)
 
 class WMUSF_Installation {
-  [string] $TemplateId
   [string] $InstallDir
-  [string] $productsZipFullPath
-  [string] $fixesZipFullPath
+  static [WMUSF_UpdMgr] $UpdateManager = [WMUSF_UpdMgr]::GetInstance()
   [WMUSF_Audit] $audit
   hidden [WMUSF_SetupTemplate] $template
 
-  WMUSF_Installation([string] $templateId) {
-    $this.init($templateId, [IO.Path]::DirectorySeparatorChar + "webMethods", "", "")
+  WMUSF_Installation([string] ${TemplateId}) {
+    $this.init(${TemplateId}, [IO.Path]::DirectorySeparatorChar + "webMethods", "", "")
   }
 
-  WMUSF_Installation([string] $templateId, [string] $installPath) {
-    $this.init($templateId, $installPath, "", "")
+  WMUSF_Installation([string] ${TemplateId}) {
+    $this.init(${TemplateId}, 'C:\webMethods')
   }
 
-  WMUSF_Installation([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenFixesZipFullPath) {
-    $this.init($templateId, $installPath, $givenproductsZipFullPath, $givenFixesZipFullPath)
+  WMUSF_Installation([string] ${TemplateId}, [string] ${InstallPath}) {
+    $this.init(${TemplateId}, ${InstallPath})
   }
 
-  hidden init([string] $templateId, [string] $installPath, [string] $givenproductsZipFullPath, [string] $givenFixesZipFullPath) {
-    $this.TemplateId = $templateId
-    $this.InstallDir = $installPath
-    $this.productsZipFullPath = $givenproductsZipFullPath
-    $this.fixesZipFullPath = $givenFixesZipFullPath
+  hidden init([string] ${TemplateId}, [string] ${InstallPath}) {
+    $this.InstallDir = ${InstallPath}
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.audit.LogI("WMUSF Installation Subsystem initialized")
-    $this.audit.LogI("WMUSF Installation TemplateId: " + $this.TemplateId)
+    $this.audit.LogI("WMUSF Installation TemplateId: " + ${TemplateId})
     $this.audit.LogI("WMUSF Installation InstallDir: " + $this.InstallDir)
     $this.template = [WMUSF_SetupTemplate]::new($this.TemplateId)
   }
 
   [WMUSF_Result] InstallProducts() {
-    return $this.InstallProducts($null, $null, 'false')
-  }
-
-  [WMUSF_Result] InstallProducts([string] $givenProductsZipFullPath, [string] $givenFixesZipFullPath, [string] $skipFixes) {
-    $r = [WMUSF_Result]::new()
-    
-    # TODO: expand for given zip files
-    $r1 = $this.template.AssureImagesZipFiles()
-    if ($r1.Code -ne 0) {
+    [WMUSF_Result] $r = [WMUSF_Result]::new()
+    $this.audit.LogD("Installing products with no parameters. Assuming default products zip file")
+    $r1 = $this.template.ResolveProductsFoldersNames()
+    if ( $r1.Code -ne 0) {
       $r.Code = 1
-      $r.Description = "Error assuring images zip files, code: " + $r.Code
+      $r.Description = "Error resolving products folders names, code: " + $r.Code
       $r.NestedResults += $r1
       $this.audit.LogE($r.Description)
       return $r
     }
-    if (-Not (Test-Path -Path $this.template.productsZipFullPath -PathType Leaf)) {
+    $this.audit.LogD("Taking the resolved products zip file: " + $this.template.productsZipFullPath)
+    $r2 = $this.template.AssureProductsZipFile()
+    if ($r2.Code -ne 0) {
       $r.Code = 2
-      $r.Description = "The products file does not exist: " + $this.template.productsZipFullPath
+      $r.Description = "Error assuring products zip file, code: " + $r.Code
+      $r.NestedResults += $r2
+      $this.audit.LogE($r.Description)
+      return $r
+    }
+    return $this.InstallProducts($this.template.productsZipFullPath, 'false')
+  }
+
+  [WMUSF_Result] InstallProducts([string] ${GivenProductsZipFullPath}, [string] $skipFixes) {
+    $r = [WMUSF_Result]::new()
+
+    if (-Not (Test-Path -Path ${GivenProductsZipFullPath} -PathType Leaf)) {
+      $r.Code = 1
+      $r.Description = "The products zip image file does not exist: " + ${GivenProductsZipFullPath}
       $this.audit.LogE($r.Description)
       return $r
     }
@@ -105,40 +111,14 @@ class WMUSF_Installation {
   }
 
   [WMUSF_Result] Patch() {
+    $this.audit.LogD("Patching installation with no parameters")
     $this.template.ResolveFixesFoldersNames()
-    return $this.Patch($this.template.latestfixesZipFullPath)
+    $this.audit.LogD("Taking the resolved fixes zip file: " + $this.template.fixesZipFullPath)
+    return $this.updateManager.PatchInstallation($this.InstallDir, $this.template.fixesZipFullPath)
   }
 
-  [WMUSF_Result] Patch([string] $givenFixesZipFullPath) {
-    $r = [WMUSF_Result]::new()
-    if (-Not (Test-Path -Path $this.template.latestfixesZipFullPath -PathType Leaf)) {
-      $r.Code = 2
-      $r.Description = "The fixes file does not exist: " + $this.template.latestfixesZipFullPath
-      $this.audit.LogE($r.Description)
-      return $r
-    }
-
-    $r1 = $this.template.GenerateFixApplyScriptFile($this.audit.LogSessionDir, $this.InstallDir, $givenFixesZipFullPath)
-    if ($r1.Code -ne 0) {
-      $r.Code = 1
-      $r.Description = "Error generating fix apply script, code: " + $r.Code
-      $r.NestedResults += $r1
-      $this.audit.LogE($r.Description)
-      return $r
-    }
-    $fixScriptFile = $r1.PayloadString
-
-    $cmd = '.' + [IO.Path]::DirectorySeparatorChar + 'UpdateManagerCMD.bat'
-    $cmd += ' -readScript "' + $fixScriptFile + '"'
-
-    $downloader = [WMUSF_Downloader]::GetInstance()
-    $r2 = $downloader.ExecuteUpdateManagerCommand($cmd, "FixApply")
-    if ($r2.Code -ne 0) {
-      $r.Code = 3
-      $r.Description = "Error applying fixes, code: " + $r.Code
-      $r.NestedResults += $r2
-      $this.audit.LogE($r.Description)
-    }
-    return $r
+  [WMUSF_Result] Patch([string] ${GivenFixesZipFullPath}) {
+    $this.audit.LogI("Patching installation with fixes zip file: " + ${GivenFixesZipFullPath})
+    return $this.updateManager.PatchInstallation($this.InstallDir, ${GivenFixesZipFullPath})
   }
 }

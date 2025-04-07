@@ -407,30 +407,6 @@ class WMUSF_SetupTemplate {
     return $escaped
   }
 
-  # TODO: this methods would stay better in the downloader
-  [WMUSF_Result] GenerateFixApplyScriptFile([string] $scriptFolder, [string] $installDir, [string] $imageFile) {
-
-    $this.audit.LogD("Generating Fix Apply Script file in folder $scriptFolder")
-    $this.audit.LogD("Using install directory: " + $installDir)
-    $this.audit.LogD("Using image file: " + $imageFile)
-    $r = [WMUSF_Result]::new()
-    $scriptFile = $scriptFolder + [IO.Path]::DirectorySeparatorChar + "apply-fixes.wmscript"
-
-    $lines = @()
-    $lines += "# Generated"
-    $lines += "installSP=N"
-    $lines += "action=Install fixes from image"
-    $lines += "selectedFixes=spro:all"
-    $lines += "installDir=" + $this.EscapeWmscriptString($installDir)
-    $lines += "imageFile=" + $this.EscapeWmscriptString($imageFile)
-
-    ${lines} | Out-File -FilePath ${scriptFile}
-
-    $r.Code = 0
-    $r.Description = "Fixes download script file generated"
-    $r.PayloadString = $scriptFile
-    return $r
-  }
 
   [WMUSF_Result] DownloadTodayFixes() {
     $this.audit.LogD("Downloading today's fixes zip file for template " + $this.id)

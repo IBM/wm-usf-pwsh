@@ -157,45 +157,6 @@ function Get-CheckSumsForAllFilesInFolder {
   ${checksums2} | Sort-Object | Out-File -FilePath ${OutFileNamesSorted}
 }
 
-function Set-DefaultGlobalVariable {
-  param(
-    [Parameter(mandatory = $true)]
-    [string] ${WMUSF_VariableName},
-    [Parameter(mandatory = $true)]
-    [string] ${WMUSF_DefaultValue}
-  )
-  ${s} = '${env:' + "${WMUSF_VariableName}" + "}"
-  ${a} = ${s} | Invoke-EnvironmentSubstitution
-  # $audit.LogI ("a=--${a}--" + "${a}".Length)
-  if ( 0 -eq "${a}".Length) {
-    $v2 = (Get-Variable -Name "${WMUSF_VariableName}" -Scope Global -ErrorAction SilentlyContinue).Value
-    if ( 0 -eq "${v2}".Length) {
-      $audit.LogD("Setting default variable value for ${WMUSF_VariableName} to ${WMUSF_DefaultValue}")
-      Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${WMUSF_DefaultValue}"
-    }
-    else {
-      $audit.LogD("Variable ${WMUSF_VariableName} already set to ${WMUSF_DefaultValue} via global scope")
-    }
-  }
-  else {
-    $audit.LogD("Variable ${WMUSF_VariableName} already set to ${a} via environment, setting global value now...")
-    Set-Variable -Name "${WMUSF_VariableName}" -Scope Global -Value "${a}"
-  }
-}
-function Set-DefaultWMSCRIPT_Vars {
-  # Installation Script Related Parameters
-  # Call this before using installer scripts
-  Set-DefaultGlobalVariable "WMSCRIPT_adminPassword" "Manage01"
-  Set-DefaultGlobalVariable "WMSCRIPT_HostName" "localhost"
-  Set-DefaultGlobalVariable "WMSCRIPT_IntegrationServerdiagnosticPort" "9999"
-  Set-DefaultGlobalVariable "WMSCRIPT_IntegrationServerPort" "5555"
-  Set-DefaultGlobalVariable "WMSCRIPT_IntegrationServersecurePort" "5543"
-  Set-DefaultGlobalVariable "WMSCRIPT_mwsPortField" "8585"
-  Set-DefaultGlobalVariable "WMSCRIPT_SPMHttpPort" "8092"
-  Set-DefaultGlobalVariable "WMSCRIPT_SPMHttpsPort" "8093"
-  Set-DefaultGlobalVariable "WMSCRIPT_StartMenuFolder" "webMethods"
-}
-
 function Set-DefaultWMUSF_Vars {
   # Framework related
   if ( ${posixCmd} ) {
@@ -232,19 +193,6 @@ function Install-FixesForUpdateManager () {
     [string] ${FixesImagefile}
   )
 
-  $r = Get-NewResultObject
-  if (-Not (Test-Path "${UpdMgrHome}/bin/UpdateManagerCMD.bat" -PathType Leaf)) {
-    $r.Code = 2
-    $r.Description = "Update Manager not found at ${UpdMgrHome}, install it first!"
-    $audit.LogE("$r.Description")
-    return $r
-  }
-  if (-Not (Test-Path "${FixesImagefile}" -PathType Leaf)) {
-    $r.Code = 3
-    $r.Description = "Image file not present: ${FixesImagefile}"
-    $audit.LogE("$r.Description")
-    return $r
-  }
 
   $audit.LogI("Patching Update Manager installation at ${UpdMgrHome} from ${FixesImagefile}")
   Push-Location .
