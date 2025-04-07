@@ -376,37 +376,12 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
-  [WMUSF_Result] GenerateFixDownloadScriptFile([string] $scriptFolder) {
-
-    $this.audit.LogD("Generating Fix Download Script file in folder $scriptFolder")
-    $r = [WMUSF_Result]::new()
-    $scriptFile = $scriptFolder + [IO.Path]::DirectorySeparatorChar + "get-fixes.wmscript"
-
-    $lines = @()
-    $lines += "# Generated"
-    $lines += "scriptConfirm=N"
-    $lines += "installSP=N"
-    $lines += "action=Create or add fixes to fix image"
-    $lines += "selectedFixes=spro:all"
-    $lines += "installDir=fixes.zip" # This should be overwritten by the command line
-    $lines += "imagePlatform=W64" # TODO - gneralize this
-    $lines += "createEmpowerImage=C"
-
-    ${lines} | Out-File -FilePath ${scriptFile}
-
-    $r.Code = 0
-    $r.Description = "Fixes download script file generated"
-    $r.PayloadString = $scriptFile
-    return $r
-  }
-
   [string] EscapeWmscriptString([string] $input) {
     # Escape the string for wmscript
     $escaped = $input -replace '\\', '\\'
     $escaped = $escaped -replace ':', '\:'
     return $escaped
   }
-
 
   [WMUSF_Result] DownloadTodayFixes() {
     $this.audit.LogD("Downloading today's fixes zip file for template " + $this.id)

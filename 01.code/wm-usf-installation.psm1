@@ -10,16 +10,13 @@ using module "./wm-usf-update-manager.psm1"
 
 class WMUSF_Installation {
   [string] $InstallDir
-  static [WMUSF_UpdMgr] $UpdateManager = [WMUSF_UpdMgr]::GetInstance()
+  #static [WMUSF_UpdMgr] $UpdateManager = [WMUSF_UpdMgr]::GetInstance()
+  [WMUSF_UpdMgr] $UpdateManager
   [WMUSF_Audit] $audit
   hidden [WMUSF_SetupTemplate] $template
 
   WMUSF_Installation([string] ${TemplateId}) {
-    $this.init(${TemplateId}, [IO.Path]::DirectorySeparatorChar + "webMethods", "", "")
-  }
-
-  WMUSF_Installation([string] ${TemplateId}) {
-    $this.init(${TemplateId}, 'C:\webMethods')
+    $this.init(${TemplateId}, [IO.Path]::DirectorySeparatorChar + "webMethods")
   }
 
   WMUSF_Installation([string] ${TemplateId}, [string] ${InstallPath}) {
@@ -27,26 +24,21 @@ class WMUSF_Installation {
   }
 
   hidden init([string] ${TemplateId}, [string] ${InstallPath}) {
+
     $this.InstallDir = ${InstallPath}
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.audit.LogI("WMUSF Installation Subsystem initialized")
     $this.audit.LogI("WMUSF Installation TemplateId: " + ${TemplateId})
     $this.audit.LogI("WMUSF Installation InstallDir: " + $this.InstallDir)
-    $this.template = [WMUSF_SetupTemplate]::new($this.TemplateId)
+    $this.UpdateManager = [WMUSF_UpdMgr]::GetInstance()
+    $this.audit.LogD("Update Manager initialized")
+    $this.template = [WMUSF_SetupTemplate]::new(${TemplateId})
   }
 
   [WMUSF_Result] InstallProducts() {
     [WMUSF_Result] $r = [WMUSF_Result]::new()
-    $this.audit.LogD("Installing products with no parameters. Assuming default products zip file")
-    $r1 = $this.template.ResolveProductsFoldersNames()
-    if ( $r1.Code -ne 0) {
-      $r.Code = 1
-      $r.Description = "Error resolving products folders names, code: " + $r.Code
-      $r.NestedResults += $r1
-      $this.audit.LogE($r.Description)
-      return $r
-    }
-    $this.audit.LogD("Taking the resolved products zip file: " + $this.template.productsZipFullPath)
+    $this.audit.LogD("Installing products with no parameters. Assuming default products zip file ...")  
+
     $r2 = $this.template.AssureProductsZipFile()
     if ($r2.Code -ne 0) {
       $r.Code = 2
@@ -113,8 +105,8 @@ class WMUSF_Installation {
   [WMUSF_Result] Patch() {
     $this.audit.LogD("Patching installation with no parameters")
     $this.template.ResolveFixesFoldersNames()
-    $this.audit.LogD("Taking the resolved fixes zip file: " + $this.template.fixesZipFullPath)
-    return $this.updateManager.PatchInstallation($this.InstallDir, $this.template.fixesZipFullPath)
+    $this.audit.LogD("Taking the resolved fixes zip file: " + $this.template.currentFixesZipFullPath)
+    return $this.updateManager.PatchInstallation($this.InstallDir, $this.template.currentFixesZipFullPath)
   }
 
   [WMUSF_Result] Patch([string] ${GivenFixesZipFullPath}) {

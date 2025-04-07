@@ -1,21 +1,34 @@
 # This class is a representation of the webMethods Update Manager installation in the current system.
 using module "./wm-usf-audit.psm1"
-Using module "./wm-usf-result.psm1"
+using module "./wm-usf-result.psm1"
+using module "./wm-usf-downloader.psm1"
 
-class WMUSF_UpgMgr {
-  static [WMUSF_UpgMgr] $Instance = [WMUSF_UpgMgr]::GetInstance()
+class WMUSF_UpdMgr {
+  static [WMUSF_UpdMgr] $Instance = [WMUSF_UpdMgr]::GetInstance()
+  hidden static [WMUSF_UpdMgr] $_instance = [WMUSF_UpdMgr]::new()
+
+  [string] $installHome
   [WMUSF_Audit] $audit
-  hidden static [WMUSF_UpgMgr] $_instance = [WMUSF_UpgMgr]::new()
-  hidden [string] $installHome
 
-  [Guid] $WMUSF_UpgMgrTarget = [Guid]::NewGuid()
-  hidden WMUSF_UpgMgr() { init ("C:\x\UpdateManager") }
-  hidden static [WMUSF_UpgMgr] GetInstance() {
-    return [WMUSF_UpgMgr]::_instance
+  [Guid] $WMUSF_UpdMgrTarget = [Guid]::NewGuid()
+
+  hidden WMUSF_UpdMgr() { 
+    $this.init("c:\x\UpdateManager") 
   }
-  hidden init([string] $installHome) {
+
+  hidden WMUSF_UpdMgr([string] ${GivenUpdMgrHome}) {
+    $this.init(${GivenUpdMgrHome}) 
+  }
+  
+  hidden static [WMUSF_UpdMgr] GetInstance() {
+    return [WMUSF_UpdMgr]::_instance
+  }
+
+  hidden init([string] ${installHome}) {
     $this.audit = [WMUSF_Audit]::GetInstance()
-    $this.installHome = $installHome
+    $this.audit.LogD("11111")
+    $this.audit.LogD("1:${installHome}")
+    $this.installHome = ${installHome}
     $this.audit.LogD("WMUSF UpgMgr object initialized")
     if (-Not (Test-Path -Path $this.installHome -PathType Container)) {
       $this.audit.LogW("WMUSF UpgMgr installation home not found: " + $this.installHome)
@@ -23,7 +36,7 @@ class WMUSF_UpgMgr {
   }
 
   [WMUSF_Result] Bootstrap() {
-    $downloader = [WMUSF_UpgMgrDownloader]::GetInstance()
+    $downloader = [WMUSF_Downloader]::GetInstance()
     $this.audit.LogD("Bootstrapping Update Manager, no parameters received ...")
     $r = [WMUSF_Result]::New()
     $r1 = $downloader.AssureDefaultUpdateManagerBootstrap()
@@ -92,7 +105,7 @@ class WMUSF_UpgMgr {
     [WMUSF_Result] $result = [WMUSF_Result]::new()
     Push-Location .
     Set-Location -Path "${tempFolder}"
-    $cmd = "." + [IO.Path]::DirectorySeparatorChar + "sum-setup.bat --accept-license -d " + '"' + $this.updateManagerHome + '"'
+    $cmd = "." + [IO.Path]::DirectorySeparatorChar + "sum-setup.bat --accept-license -d " + '"' + $this.installHome + '"'
     if (-Not ($null -eq ${bootstrapImage} -or "" -eq ${bootstrapImage})) {
       $cmd += " -i " + '"' + ${bootstrapImage} + '"'
     }
@@ -193,14 +206,14 @@ class WMUSF_UpgMgr {
   [WMUSF_Result] PatchInstallation([string] ${InstallationHome}, [string] ${FixesImageFile}) {
 
     $r = [WMUSF_Result]::new()
-    if (-Not (Test-Path -Path ${InstallationHome} -PathType Leaf)) {
+    if (-Not (Test-Path -Path ${FixesImageFile} -PathType Leaf)) {
       $r.Code = 2
-      $r.Description = "The fixes file does not exist: " + ${InstallationHome}
+      $r.Description = "The fixes file does not exist: " + ${FixesImageFile}
       $this.audit.LogE($r.Description)
       return $r
     }
 
-    $r1 = $this.GenerateFixApplyScriptFile($this.audit.LogSessionDir, ${InstallationHome}, ${FixesImageFile})
+    $r1 = $this.GenerateAllFixesApplyScriptFile($this.audit.LogSessionDir, ${InstallationHome}, ${FixesImageFile})
     if ($r1.Code -ne 0) {
       $r.Code = 1
       $r.Description = "Error generating fix apply script, code: " + $r.Code
@@ -216,7 +229,6 @@ class WMUSF_UpgMgr {
     return $this.ExecuteCommand($cmd, "UpdateManager")
   }
 
-  # TODO: this methods would stay better in the downloader
   [WMUSF_Result] GenerateAllFixesApplyScriptFile([string] $scriptFolder, [string] $installDir, [string] $imageFile) {
 
     $this.audit.LogD("Generating Fix Apply Script file in folder $scriptFolder")
@@ -241,12 +253,10 @@ class WMUSF_UpgMgr {
     return $r
   }
 
-  [string] EscapeWmscriptString([string] $input) {
+  [string] EscapeWmscriptString([string] $inputString) {
     # Escape the string for wmscript
-    $escaped = $input -replace '\\', '\\'
+    $escaped = $inputString -replace '\\', '\\'
     $escaped = $escaped -replace ':', '\:'
     return $escaped
   }
-  
-
 }
