@@ -22,6 +22,9 @@
     "workbench.colorTheme": "Violet Flask",
     "cSpell.words": [
         "configurator",
-        "WMSCRIPT"
+        "pwsh",
+        "WMSCRIPT",
+        "Wmum",
+        "WMUSF"
     ]
 }

@@ -6,7 +6,7 @@ Note that the sandbox file is a template and cannot be run directly. Use the `st
 
 Important note: currently, only onw sandbox at a time can be spun.
 The sandbox may be used to setup an installation directly at startup. The template to be used for test is specified with the environment variable `WMUSF_SBX_STARTUP_TEMPLATE` .
-If the variale is set, the startup code will attempt its instalation. If not, there will be no attempt at the installation of webMethods.
+If the variable is set, the startup code will attempt its installation. If not, there will be no attempt at the installation of webMethods.
 
 Set the variable by copying `EXAMPLE.setStartupTemplate.bat` into `setStartupTemplate.bat` in the folder `.sandbox/wm-usf-pwsh-dev-02/inside` and editing the contents accordingly before starting the sandbox.
 
@@ -35,10 +35,9 @@ For all the read only folders edit or produce files outside of the sandbox and u
 
 ## Tools inside the Sandbox
 
-The sandbox is intended to mimic a production like Windows machine holting webMethods installations.
+The sandbox is intended to mimic a production like Windows machine holding webMethods installations.
 
 The tools expected to be installed are:
 
 * powershell with version ${env: POWERSHELL_VERSION}
 * pester with version ${env: PESTER_VERSION}
-* baretail

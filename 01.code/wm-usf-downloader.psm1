@@ -1,4 +1,6 @@
-# This class encapsulates the functionality to download binaries from webMethods download center
+# This class encapsulates the functionality to download binaries from webMethods 
+# It holds a cache of downloaded artifacts for reuse
+# For offline installations, use this against the cache, copied over upfront
 Using module "./wm-usf-audit.psm1"
 Using module "./wm-usf-result.psm1"
 

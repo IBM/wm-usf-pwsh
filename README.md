@@ -18,7 +18,7 @@ To quickstart a simple installation:
 4. Go to `.sandbox/wm-usf-pwsh-dev-02`
 5. Run the file `startupSandbox.bat`
 
-The sandbox will take some time for its first run. After the startup finishes, you sohuld have a sandbox with the template of choice installed.
+The sandbox will take some time for its first run. After the startup finishes, you should have a sandbox with the template of choice installed.
 
 ## Framework Environment Variables
 
@@ -46,6 +46,7 @@ WMUSF_ARTIFACTS_CACHE_HOME| `K:` | `${project_home}$/09.artifacts`
 The variables below are resolved in the provided order
 
 (To Review)
+
 Variable Name|Description|Derived from env Var|Default Value
 -|-|-|-
 TempSessionDir|Temporary directory for the session| `${env:WMUSF_TEMP_DIR}` | `(${env: TEMP} ?? '/tmp) + [IO.Path]::DirectorySeparatorChar + "WMUSF` "
