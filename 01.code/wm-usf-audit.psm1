@@ -79,6 +79,8 @@ class WMUSF_Audit {
     ${cmdToLog} = ${Command} -replace "(.*)\-pass\ (.*)", "`${1}-pass ***"
     # update manager
     ${cmdToLog} = ${cmdToLog} -replace "(.*)\-empowerPass\ (.*)", "`${1}-empowerPass ***"
+    # database configurator
+    ${cmdToLog} = ${cmdToLog} -replace "(.*)\-password\ (.*)", "`${1}-password ***"
 
     ${fullCmd} = $Command + " >>""${baseOutputFileName}.out.txt"" 2>>""${baseOutputFileName}.err.txt"
     ${cmdToLog} += " >>""${baseOutputFileName}.out.txt"" 2>>""${baseOutputFileName}.err.txt"

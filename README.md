@@ -59,6 +59,8 @@ Name|Default Value|Notes
 -|-|-
 WMUSF_ARTIFACTS_CACHE_HOME| `K:` | Internal older mapped to the project's `09.Artifacts` folder
 WMUSF_AUDIT_DIR| `c:\y\sandbox\WMUSF_Audit` | Internal older mapped to the project's `"10.local-files\sbx\Runs\r-${CRT_TIMESTAMP}"` folder
+WMUSF_DBC_HOME | `'C:\x\webMethods\DBC'` | Home installation for database configurator, which normally is necessary to start with a database backed installation
+WMUSF_SBX_STARTUP_INSTALL_DIR| `'C:\x\webMethods\DBC'` | Same as WMUSF_DBC_HOME
 WMUSF_SBX_STARTUP_TEMPLATE| `'DBC\1011\full'` | Template to install directly at startup of the Sandbox
 
 ### Devcontainer Variable Values

@@ -34,12 +34,12 @@ netsh interface portproxy add v4tov4 listenaddress=%SANDBOX_GATEWAY_IP% listenpo
 netsh advfirewall firewall add rule name="Allow sbx services" dir=in action=allow protocol=TCP localport=8080,1433 localip=%SANDBOX_GATEWAY_IP% remoteip=LocalSubnet
 ```
 
+## Inspect Rules
+
 ```bat
 netsh interface portproxy show v4tov4
 netsh advfirewall firewall show rule name="Allow sbx services"
 ```
-
-## Inspect Rules
 
 ## Cleanup 
 

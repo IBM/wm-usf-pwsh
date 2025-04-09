@@ -9,29 +9,80 @@ using module "./wm-usf-update-manager.psm1"
 #       $audit.LogD("Read product list is: " + $pl.PayloadString)
 
 class WMUSF_Installation {
+  # Where to install? Accept over-installs
   [string] $InstallDir
-  #static [WMUSF_UpdMgr] $UpdateManager = [WMUSF_UpdMgr]::GetInstance()
+  # Which Installer binary to use?
+  [string] $CurrentInstallerBinaryFullPath
+  # which products fix image to use?
+  [string] $CurrentProductsZipFullPath
+
+  # By default always consider fixes. May avoid to install eventually, when the products are just published as GA
+  [string] $skipFixes
+
+  # which fixes zip image to use?
+  [string] $CurrentFixesZipFullPath
+
   [WMUSF_UpdMgr] $UpdateManager
   [WMUSF_Audit] $audit
   hidden [WMUSF_SetupTemplate] $template
 
+  # Full Defaults
   WMUSF_Installation([string] ${TemplateId}) {
-    $this.init(${TemplateId}, [IO.Path]::DirectorySeparatorChar + "webMethods")
+    $this.init(${TemplateId}, [IO.Path]::DirectorySeparatorChar + "webMethods", $null, $null, $null)
   }
 
   WMUSF_Installation([string] ${TemplateId}, [string] ${InstallPath}) {
-    $this.init(${TemplateId}, ${InstallPath})
+    $this.init(${TemplateId}, ${InstallPath}, $null, $null, $null)
   }
 
-  hidden init([string] ${TemplateId}, [string] ${InstallPath}) {
+  # Eventually install but don't try to patch. This may be the case when the products are new
+  WMUSF_Installation(
+    [string] ${TemplateId},
+    [string] ${InstallPath},
+    [string] ${GivenInstallerBinary},
+    [string] ${GivenInstallZip}
+  ) {
+    $this.init(${TemplateId}, ${InstallPath}, ${GivenInstallerBinary}, ${GivenInstallZip}, $null)
+  }
 
+  WMUSF_Installation(
+    [string] ${TemplateId},
+    [string] ${InstallPath},
+    [string] ${GivenInstallerBinary},
+    [string] ${GivenInstallZip},
+    [string] ${GivenFixesZip}
+  ) {
+    $this.init(${TemplateId}, ${InstallPath}, ${GivenInstallerBinary}, ${GivenInstallZip}, ${GivenFixesZip})
+  }
+
+  hidden init(
+    [string] ${TemplateId},
+    [string] ${InstallPath},
+    [string] ${GivenInstallerBinary},
+    [string] ${GivenInstallZip},
+    [string] ${GivenFixesZip}
+  ) {
     $this.InstallDir = ${InstallPath}
+    $this.CurrentInstallerBinaryFullPath = ${GivenInstallerBinary}
+    $this.CurrentProductsZipFullPath = ${GivenInstallZip}
+    $this.skipFixes = 'false' # hardwired for now, will eventually consider when the case presents itself
     $this.audit = [WMUSF_Audit]::GetInstance()
-    $this.audit.LogI("WMUSF Installation Subsystem initialized")
-    $this.audit.LogI("WMUSF Installation TemplateId: " + ${TemplateId})
-    $this.audit.LogI("WMUSF Installation InstallDir: " + $this.InstallDir)
+    $this.audit.LogI("Initializing installation object with the following received values")
+    $this.audit.LogI("InstallDir: " + $this.InstallDir)
+    $this.audit.LogI("CurrentInstallerBinaryFullPath: " + $this.CurrentInstallerBinaryFullPath)
+    $this.audit.LogI("CurrentProductsZipFullPath: " + $this.CurrentProductsZipFullPath)
     $this.UpdateManager = [WMUSF_UpdMgr]::GetInstance()
-    $this.audit.LogD("Update Manager initialized")
+
+    if ($this.skipFixes -eq 'false') {
+      $this.CurrentFixesZipFullPath = ${GivenFixesZip}
+      $this.audit.LogI("CurrentFixesZipFullPath: " + $this.CurrentFixesZipFullPath)
+    }
+    else {
+      $this.audit.LogW("Skipping fixes for this installation...")
+    }
+
+    # TODO: enforce files existence
+
     $this.template = [WMUSF_SetupTemplate]::new(${TemplateId})
   }
 
@@ -39,17 +90,24 @@ class WMUSF_Installation {
     [WMUSF_Result] $r = [WMUSF_Result]::new()
     $this.audit.LogD("Installing products with no parameters. Assuming default products zip file ...")  
 
-    $r2 = $this.template.AssureProductsZipFile()
-    if ($r2.Code -ne 0) {
-      $r.Code = 2
-      $r.Description = "Error assuring products zip file, code: " + $r.Code
-      $r.NestedResults += $r2
-      $this.audit.LogE($r.Description)
-      return $r
+    if (($this.CurrentProductsZipFullPath + "") -eq "") {
+      $r2 = $this.template.AssureProductsZipFile()
+      if ($r2.Code -ne 0) {
+        $r.Code = 2
+        $r.Description = "Error assuring products zip file, code: " + $r.Code
+        $r.NestedResults += $r2
+        $this.audit.LogE($r.Description)
+        return $r
+      }
+      $this.CurrentProductsZipFullPath = $this.template.productsZipFullPath
     }
-    return $this.InstallProducts($this.template.productsZipFullPath, 'false')
+    else {
+      $this.audit.LogD("CurrentProductsZipFullPath: " + $this.CurrentProductsZipFullPath)
+    }
+    return $this.InstallProducts($this.CurrentProductsZipFullPath, $this.skipFixes)
   }
 
+  # TODO: add option to pass installer
   [WMUSF_Result] InstallProducts([string] ${GivenProductsZipFullPath}, [string] $skipFixes) {
     $r = [WMUSF_Result]::new()
 
@@ -59,16 +117,18 @@ class WMUSF_Installation {
       $this.audit.LogE($r.Description)
       return $r
     }
-    $downloader = [WMUSF_Downloader]::GetInstance()
-    $r2 = $downloader.GetInstallerBinary()
-    if ($r2.Code -ne 0) {
-      $r.Code = 3
-      $r.Description = "Error getting installer binary, code: " + $r.Code
-      $r.NestedResults += $r2
-      $this.audit.LogE($r.Description)
-      return $r
+    if (($this.CurrentInstallerBinaryFullPath + "") -eq "") {
+      $downloader = [WMUSF_Downloader]::GetInstance()
+      $r2 = $downloader.GetInstallerBinary()
+      if ($r2.Code -ne 0) {
+        $r.Code = 3
+        $r.Description = "Error getting installer binary, code: " + $r.Code
+        $r.NestedResults += $r2
+        $this.audit.LogE($r.Description)
+        return $r
+      }
+      $this.CurrentInstallerBinaryFullPath = $r2.PayloadString
     }
-    $installerBinary = $r2.PayloadString
 
     $r3 = $this.template.GenerateInstallScript($this.audit.LogSessionDir, "install.wmscript")
     if ($r3.Code -ne 0) {
@@ -83,7 +143,7 @@ class WMUSF_Installation {
 
     $installLogFile = $this.audit.LogSessionDir + [IO.Path]::DirectorySeparatorChar + "install.log"
 
-    $installCmd = "$installerBinary -console -scriptErrorInteract no -debugLvl verbose"
+    $installCmd = $this.CurrentInstallerBinaryFullPath + " -console -scriptErrorInteract no -debugLvl verbose"
     $installCmd += " -debugFile " + '"' + $installLogFile + '"'
     $installCmd += " -installDir " + '"' + $this.InstallDir + '"'
     $installCmd += " -readScript " + '"' + $installWmScript + '"'
@@ -104,9 +164,12 @@ class WMUSF_Installation {
 
   [WMUSF_Result] Patch() {
     $this.audit.LogD("Patching installation with no parameters")
-    $this.template.ResolveFixesFoldersNames()
-    $this.audit.LogD("Taking the resolved fixes zip file: " + $this.template.currentFixesZipFullPath)
-    return $this.updateManager.PatchInstallation($this.InstallDir, $this.template.currentFixesZipFullPath)
+    if (($this.CurrentFixesZipFullPath + "") -eq "") {
+      $this.template.ResolveFixesFoldersNames()
+      $this.audit.LogD("Taking the resolved fixes zip file: " + $this.template.currentFixesZipFullPath)
+      $this.CurrentFixesZipFullPath = $this.template.currentFixesZipFullPath
+    }
+    return $this.updateManager.PatchInstallation($this.InstallDir, $this.CurrentFixesZipFullPath)
   }
 
   [WMUSF_Result] Patch([string] ${GivenFixesZipFullPath}) {
