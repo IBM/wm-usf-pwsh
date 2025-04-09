@@ -435,8 +435,8 @@ class WMUSF_SetupTemplate {
 
     $cmd += """${pass}"""
 
-    $downloader = [WMUSF_Downloader]::GetInstance()
-    $r3 = $downloader.ExecuteUpdateManagerCommand($cmd, "DownloadFixes")
+    $updMgr = [WMUSF_UpdMgr]::GetInstance()
+    $r3 = $updMgr.ExecuteCommand($cmd, "DownloadFixes")
     if ( $r3.Code -ne 0) {
       $r.Description = "Today's fixes zip file cannot be downloaded, exiting with error"
       $r.Code = 3
