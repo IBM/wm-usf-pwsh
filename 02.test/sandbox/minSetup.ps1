@@ -1,5 +1,6 @@
 Using module "../../01.code/wm-usf-installation.psm1"
 Using module "../../01.code/wm-usf-audit.psm1"
+Using module "../../01.code/wm-usf-result.psm1"
 
 $audit = [WMUSF_Audit]::GetInstance()
 

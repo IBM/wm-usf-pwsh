@@ -229,13 +229,37 @@ class WMUSF_UpdMgr {
     return $this.ExecuteCommand($cmd, "UpdateManager")
   }
 
-  [WMUSF_Result] GenerateAllFixesApplyScriptFile([string] $scriptFolder, [string] $installDir, [string] $imageFile) {
+  [WMUSF_Result] GenerateFixDownloadScriptFile([string] ${ScriptFolder}) {
 
-    $this.audit.LogD("Generating Fix Apply Script file in folder $scriptFolder")
+    $this.audit.LogD("Generating Fix Download Script file in folder ${ScriptFolder}")
+    $r = [WMUSF_Result]::new()
+    $scriptFile = ${ScriptFolder} + [IO.Path]::DirectorySeparatorChar + "get-fixes.wmscript"
+
+    $lines = @()
+    $lines += "# Generated"
+    $lines += "scriptConfirm=N"
+    $lines += "installSP=N"
+    $lines += "action=Create or add fixes to fix image"
+    $lines += "selectedFixes=spro:all"
+    $lines += "installDir=fixes.zip" # This should be overwritten by the command line
+    $lines += "imagePlatform=W64" # TODO - generalize this
+    $lines += "createEmpowerImage=C"
+
+    ${lines} | Out-File -FilePath ${scriptFile}
+
+    $r.Code = 0
+    $r.Description = "Fixes download script file generated"
+    $r.PayloadString = $scriptFile
+    return $r
+  }
+
+  [WMUSF_Result] GenerateAllFixesApplyScriptFile([string] ${ScriptFolder}, [string] $installDir, [string] $imageFile) {
+
+    $this.audit.LogD("Generating Fix Apply Script file in folder ${ScriptFolder}")
     $this.audit.LogD("Installation directory to patch: " + $installDir)
     $this.audit.LogD("Using image file: " + $imageFile)
     $r = [WMUSF_Result]::new()
-    $scriptFile = $scriptFolder + [IO.Path]::DirectorySeparatorChar + "apply-fixes.wmscript"
+    $scriptFile = ${ScriptFolder} + [IO.Path]::DirectorySeparatorChar + "apply-fixes.wmscript"
   
     $lines = @()
     $lines += "# Generated"

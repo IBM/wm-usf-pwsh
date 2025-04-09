@@ -2,6 +2,7 @@
 Using module "./wm-usf-audit.psm1"
 Using module "./wm-usf-result.psm1"
 Using module "./wm-usf-downloader.psm1"
+Using module "./wm-usf-update-manager.psm1"
 
 Import-Module -Name "$PSScriptRoot/wm-usf-utils.psm1" -Force
 
@@ -405,7 +406,8 @@ class WMUSF_SetupTemplate {
     $this.latestFixesFolderFullPath = $this.todayFixesFolderFullPath
     $this.latestFixesZipFullPath = $this.todayFixesZipFullPath
 
-    $r2 = $this.GenerateFixDownloadScriptFile($this.todayFixesFolderFullPath)
+    $updMgr = [WMUSF_UpdMgr]::GetInstance()
+    $r2 = $updMgr.GenerateFixDownloadScriptFile($this.todayFixesFolderFullPath)
     if ($r2.Code -ne 0) {
       $r.Description = "Today's fixes download script file cannot be generated, exiting with error"
       $r.Code = 2
