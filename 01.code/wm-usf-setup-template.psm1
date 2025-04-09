@@ -312,9 +312,13 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
-  [WMUSF_Result] GenerateInstallScript([string] $ephmeralScriptFolder, [string] $ephemeralScriptFileName) {
-    $this.audit.LogD("Generating install script file in folder $ephmeralScriptFolder")
-    $this.audit.LogD("Using ephemeral script file name: " + $ephemeralScriptFileName)
+  [WMUSF_Result] GenerateInstallScript(
+    [string] ${EphemeralScriptFolder},
+    [string] ${EphemeralScriptFileName},
+    [string] ${GivenProductsZipFullPath}
+  ) {
+    $this.audit.LogD("Generating install script file in folder ${EphemeralScriptFolder}")
+    $this.audit.LogD("Using ephemeral script file name: " + ${EphemeralScriptFileName})
     $r = [WMUSF_Result]::new()
 
     if ($this.installerScriptFullPathExists -eq 'false') {
@@ -332,8 +336,8 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
-    if (-Not (Test-Path -Path $this.productsZipFullPath -PathType Leaf)) {
-      $r.Description = "Products zip file not found: " + $this.productsZipFullPath
+    if (-Not (Test-Path -Path ${GivenProductsZipFullPath} -PathType Leaf)) {
+      $r.Description = "Products zip file not found: " + ${GivenProductsZipFullPath}
       $r.Code = 5
       $this.audit.LogE($r.Description)
       return $r
@@ -348,8 +352,8 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
-    $destFolder = $ephmeralScriptFolder
-    if ($null -eq $ephmeralScriptFolder -or "" -eq $ephmeralScriptFolder) {
+    $destFolder = ${EphemeralScriptFolder}
+    if ($null -eq ${EphemeralScriptFolder} -or "" -eq ${EphemeralScriptFolder}) {
       $destFolder = $this.audit.LogSessionDir
       $this.audit.LogW("Using Default destination folder for install script: " + $destFolder)
       if (-Not (Test-Path $destFolder -PathType Container)) {
@@ -358,18 +362,18 @@ class WMUSF_SetupTemplate {
       }
     }
 
-    if ($null -eq $ephemeralScriptFileName -or "" -eq $ephemeralScriptFileName) {
+    if ($null -eq ${EphemeralScriptFileName} -or "" -eq ${EphemeralScriptFileName}) {
       $scriptFileName = "install.wmscript"
       $this.audit.LogW("Using Default install script file name: " + $scriptFileName)
     }
 
-    $destFile = $destFolder + [IO.Path]::DirectorySeparatorChar + $ephemeralScriptFileName
+    $destFile = $destFolder + [IO.Path]::DirectorySeparatorChar + ${EphemeralScriptFileName}
     $this.audit.LogI("Generating install script file: " + $destFile)
     $templateContent = Get-Content -Path $this.installerScriptFullPath -Raw
     $scriptContent = $templateContent | Invoke-EnvironmentSubstitution
     $scriptContent | Out-File -FilePath $destFile -Encoding ascii
     ("InstallProducts=" + $pl.PayloadString) | Out-File -FilePath $destFile -Append -Encoding ascii
-    $iFile = $this.EscapeWmscriptString($this.productsZipFullPath)
+    $iFile = $this.EscapeWmscriptString(${GivenProductsZipFullPath})
     ("imageFile=" + $iFile) | Out-File -FilePath $destFile -Append -Encoding ascii
 
     $r.Code = 0

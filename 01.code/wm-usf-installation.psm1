@@ -130,7 +130,7 @@ class WMUSF_Installation {
       $this.CurrentInstallerBinaryFullPath = $r2.PayloadString
     }
 
-    $r3 = $this.template.GenerateInstallScript($this.audit.LogSessionDir, "install.wmscript")
+    $r3 = $this.template.GenerateInstallScript($this.audit.LogSessionDir, "install.wmscript", ${GivenProductsZipFullPath})
     if ($r3.Code -ne 0) {
       $r.Code = 4
       $r.Description = "Error generating install script, code: " + $r.Code
