@@ -95,7 +95,6 @@ class WMUSF_DBC {
       $cmd += " --printActions"
       $cmd += " --password " + '"' + $userPass + '"'
       Push-Location -Path .
-      $this.audit.LogD("1: " + $this.DBC_InstallDir )
       Set-Location -Path ($this.DBC_InstallDir + "/common/db/bin")
       $r2 = $this.audit.InvokeCommand($cmd, "CreateAllcomponents")
       if ($r2.Code -ne 0) {
@@ -103,7 +102,6 @@ class WMUSF_DBC {
         $r.Description = "Command failed"
         $r2
       }
-      $this.audit.LogD(3)
       Pop-Location
     }
     return $r
