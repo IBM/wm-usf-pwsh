@@ -1,0 +1,104 @@
+Universal Messaging > Instance Manager requires Platform Manager Plug-ins > Universal Messaging Plug-in.
+Database Configuration > Process Engine Database Scripts requires Database Configuration > Monitor Database Scripts.
+Asset Build Environment requires Asset Build Environment Scripts > Integration Server Assets.
+Universal Messaging > Client Libraries requires Libraries > Common Libraries for OpenSSL.
+Integration Server or Microservices Runtime Packages > Rules Engine requires Integration Server > Integration Core.
+Adapters > webMethods Adapter for JDBC requires Integration Server > Integration Core.
+Database Configuration > My webMethods Server Database Scripts requires Database Configuration > Optimize Central Configuration Database Scripts.
+My webMethods User Interfaces > Monitor UI requires Libraries > Optimize Libraries.
+Designer > Business Rules Development requires Shared Plug-ins > Branding and Naming.
+Business Processes > Process Development requires Shared Plug-ins > Branding and Naming.
+Services > Service Development requires Libraries > Shared Libraries.
+Composite Applications > UI Development requires Shared Plug-ins > Metadata.
+Universal Messaging > Realm Server requires webMethods Metering > Metering Agent.
+My webMethods Server > Task Engine requires Bundles > BigMemory Max Bundles.
+Integration Server or Microservices Runtime Packages > Process Engine requires Libraries > Shared Libraries.
+Integration Server or Microservices Runtime Packages > Task Client Support requires Integration Server > Integration Core.
+Integration Server or Microservices Runtime Packages > Central User Management requires Integration Server > Integration Core.
+My webMethods User Interfaces > Trading Networks UI requires Trading Networks Plug-ins > Trading Networks UI Plug-in.
+Integration Server > Server requires Integration Server > Integration Core.
+Universal Messaging > Broker to UM Migration Utility requires Libraries > Shared Libraries.
+Integration Server or Microservices Runtime Packages > Deployer requires Integration Server > Integration Core.
+Integration Server or Microservices Runtime Packages > Monitor requires Integration Server > Integration Core.
+Database Configuration > Database Component Configurator requires Libraries > Shared Libraries.
+Integration Server or Microservices Runtime Libraries > Common Directory Service Support requires Libraries > Composite Applications Runtime.
+Business Processes > Process Task Development requires Composite Applications > Task Development.
+Terracotta BigMemory Max requires BigMemory Max.
+My webMethods User Interfaces > Business Rules UI requires My webMethods Server Plug-ins > Business Rules UI Plug-in.
+Database Configuration > Integration Server and Microservices Runtime Database Scripts requires Database Configuration > Monitor Database Scripts.
+Integration Server > Trading Networks Server requires Libraries > Shared Libraries.
+My webMethods Server > Server requires My webMethods Server Plug-ins > Server Plug-in.
+Platform Manager Plug-ins > Universal Messaging Plug-in requires Common Monitoring Provider Bundle > Implementations.
+Database Configuration > Monitor Database Scripts requires Database Configuration > Optimize Database Scripts.
+Bundles > Composite Applications Runtime Bundles requires Bundles > Integration Server Bundles.
+Libraries > Shared Libraries requires Libraries > Migration Framework Libraries.
+Libraries > Broker Libraries requires Libraries > Shared Libraries.
+Libraries > My webMethods Server Libraries requires Libraries > Shared Libraries.
+Libraries > Composite Applications Runtime requires Libraries > Shared Libraries.
+Web Services Stack > Core Files requires Third-Party Libraries > Web Service Libraries.
+Event Routing > Shared Bundles requires Bundles > Deployer and Asset Build Environment Bundles.
+Libraries > Universal Messaging Libraries requires Third-Party Libraries > Data Modeling Libraries.
+Libraries > Designer Libraries requires Libraries > Shared Libraries.
+Libraries > BigMemory Max Libraries requires Third-Party Libraries > Tool for Apache Ant.
+Asset Build Environment Scripts > Command Central Assets requires Infrastructure > Platform Manager.
+Libraries > Common Libraries for OpenSSL requires Libraries > Installer Libraries.
+Integration Server or Microservices Runtime Libraries > External RDBMS Support requires Integration Server > Integration Core.
+Integration Server > Integration Core requires Integration Server > Adapter Runtime.
+Shared User Interface > Optimize Support requires Libraries > Optimize Libraries.
+Libraries > Optimize Libraries requires Web Services Stack > Core Files.
+Shared Plug-ins > Branding and Naming requires Designer > Eclipse.
+Shared Plug-ins > Metadata requires Shared Plug-ins > Branding and Naming.
+Shared Plug-ins > Universal Messaging Integration requires Shared Plug-ins > Branding and Naming.
+Shared Plug-ins > Database Drivers requires Shared Plug-ins > Branding and Naming for DataDirect Drivers.
+Shared Plug-ins > Optimize Integration requires Shared Plug-ins > Branding and Naming.
+Shared Plug-ins > Modeling requires Libraries > Installer Libraries.
+Shared Plug-ins > JCR Integration requires Shared Plug-ins > Branding and Naming.
+Libraries > Migration Framework Libraries requires Third-Party Libraries > Logging Libraries for Java.
+Shared Plug-ins > Landscape Asset Repository requires Shared Plug-ins > Branding and Naming.
+Shared Plug-ins > Glue Integration requires Shared Plug-ins > Branding and Naming.
+webMethods Metering > Metering Agent requires Libraries > Migration Framework Libraries.
+Digital Event Services > Runtime Bundles requires Digital Event Services > Shared Bundles.
+My webMethods Server Plug-ins > Task Engine and UI Plug-in requires My webMethods Server Plug-ins > Server Plug-in.
+Event Routing > Runtime Bundles requires Third-Party Libraries > Framework Libraries for Spring.
+Integration Server or Microservices Runtime Packages > Process Model Support requires Integration Server > Integration Core.
+Trading Networks Plug-ins > Trading Networks UI Plug-in requires My webMethods Server Plug-ins > Server Plug-in.
+Integration Server Plug-ins > Server Plug-in requires Infrastructure > Platform Manager.
+Shared Platform > Platform requires Central Security Bundles (ZSL) > ZSL esapi Bundle.
+Integration Server or Microservices Runtime Libraries > CentraSite Asset Publisher Support requires Integration Server > Integration Core.
+Bundles > Database Driver Bundles requires Bundles > Shared Bundles.
+Integration Server or Microservices Runtime Packages > Deployment Support for AgileApps requires Integration Server > Integration Core.
+Integration Server or Microservices Runtime Packages > Deployment Support for webMethods Broker requires Integration Server > Integration Core.
+Integration Server or Microservices Runtime Packages > Deployment Support for CloudStreams requires Integration Server > Integration Core.
+Integration Server or Microservices Runtime Packages > Deployment Support for Universal Messaging requires Integration Server > Integration Core.
+Composite Applications > Task Development requires Composite Applications > My webMethods Server Support.
+BigMemory Max requires Platform Manager Plug-ins > BigMemory Max Plug-in.
+My webMethods Server Plug-ins > Business Rules UI Plug-in requires My webMethods Server Plug-ins > Server Plug-in.
+Trading Networks Plug-ins > Server Plug-in requires Integration Server Plug-ins > Server Plug-in.
+My webMethods Server Plug-ins > Server Plug-in requires Common Monitoring Provider Bundle > Implementations.
+My webMethods Server > Diagnostic Tools requires Bundles > Composite Applications Runtime Bundles.
+Bundles > Common Landscape Asset Registry requires Bundles > Shared Bundles.
+Bundles > Universal Messaging Bundles requires Bundles > Installer Bundles.
+Common Monitoring Provider Bundle > Implementations requires Common Monitoring Provider Bundle > API.
+Infrastructure > Platform Manager requires Libraries > Shared Libraries.
+Database Configuration > Optimize Database Scripts requires Database Configuration > Monitor Database Scripts.
+Bundles > Glue Bundles requires Bundles > Shared Bundles.
+Bundles > Web Services Stack Bundles requires Shared Platform > Platform.
+Bundles > Broker Bundles requires Bundles > Deployer and Asset Build Environment Bundles.
+Database Configuration > Integration Server and Microservices Runtime Embedded Database Scripts requires Libraries > Database Component Configurator Core.
+Integration Server > Flat File requires Integration Server > Integration Core.
+Integration Server > Adapter Runtime requires Integration Server > Integration Core.
+Designer > Eclipse requires Libraries > Installer Libraries.
+Shared Plug-ins > Branding and Naming for DataDirect Drivers requires Shared Plug-ins > Database Drivers.
+Shared Plug-ins > Broker Integration requires Shared Plug-ins > Branding and Naming.
+Libraries > Digital Event Services requires Libraries > Shared Libraries.
+Digital Event Services > Shared Bundles requires Libraries > Shared Libraries.
+Platform Manager Plug-ins > Event Routing Plug-in requires Bundles > Web Services Stack Bundles.
+Infrastructure > Event Routing Event Type Store requires Libraries > Shared Libraries.
+Central Security Bundles (ZSL) > ZSL esapi Bundle requires Bundles > Shared Bundles.
+Composite Applications > Business Console Gadgets requires Composite Applications > Task Development.
+Composite Applications > My webMethods Server Support requires My webMethods Server > Diagnostic Tools.
+Platform Manager Plug-ins > BigMemory Max Plug-in requires Infrastructure > Platform Manager.
+Bundles > Installer Bundles requires Shared Platform > Platform.
+License > Verifier requires Infrastructure > Common C/C++ Runtime.
+Infrastructure > Common C/C++ Runtime requires Libraries > Installer Libraries.
+Services > Unit Test Framework requires Shared Plug-ins > License Validator.
