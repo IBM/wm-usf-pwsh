@@ -164,8 +164,9 @@ class WMUSF_UpdMgr {
     $this.audit.LogI("Executing Update Manager command, parameters received: 1: * 2: $auditTag")
     $r = [WMUSF_Result]::new()
 
-    if (-Not (Test-Path ($this.updateManagerHome + [IO.Path]::DirectorySeparatorChar + 'bin') -PathType Container)) {
-      $this.audit.LogW("Update Manager not installed, attempting to install it")
+    if (-Not (Test-Path -Path ($this.installHome + [IO.Path]::DirectorySeparatorChar + 'bin') -PathType Container)) {
+      $this.audit.LogW("Update Manager not installed, attempting to install it.")
+      $this.audit.LogD("Update Manager bin dir should have been found at location " + $this.installHome + [IO.Path]::DirectorySeparatorChar + 'bin')
       $r1 = $this.Bootstrap()
       if ($r1.Code -ne 0) {
         $r.Description = "Error bootstrapping Update Manager: " + $r1.Description
