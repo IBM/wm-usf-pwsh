@@ -26,7 +26,6 @@ class WMUSF_UpdMgr {
 
   hidden init([string] ${installHome}) {
     $this.audit = [WMUSF_Audit]::GetInstance()
-    $this.audit.LogD("11111")
     $this.audit.LogD("1:${installHome}")
     $this.installHome = ${installHome}
     $this.audit.LogD("WMUSF UpgMgr object initialized")

@@ -237,9 +237,8 @@ class WMUSF_SetupTemplate {
     }
     else {
       if ($this.currentFixesFolderFullPath -eq "N/A") {
-        $temp = [System.IO.Path]::GetTempPath()
-        $temp.Substring(0, $temp.Length - 1)
-        $this.audit.LogE("Fixes folder not resolved, using the default temmporary folder to genereate the inventory file: $temp")
+        $temp = [System.IO.Path]::GetTempPath() + (Get-Date -UFormat "%s")
+        $this.audit.LogE("Fixes folder not resolved, using the default temporary folder to generate the inventory file: $temp")
         return $this.GenerateInventoryFile($temp)
       }
       else {
@@ -256,10 +255,10 @@ class WMUSF_SetupTemplate {
     ${updateManagerVersion} = "11.0.0.0040-0819"
     ${SumPlatformGroupString} = """WIN-ANY"""
 
-    $invFileName = $destinationFolder + [IO.Path]::DirectorySeparatorChar + "inventory.json"
-    $r.PayloadString = $invFileName
-    if (Test-Path $invFileName -PathType Leaf) {
-      $r.Description = "Today's inventory file already exists, nothing to do"
+    ${invFileName} = $destinationFolder + [IO.Path]::DirectorySeparatorChar + "inventory.json"
+    $r.PayloadString = ${invFileName}
+    if (Test-Path -Path ${invFileName} -PathType Leaf) {
+      $r.Description = "Today's inventory file already exists, nothing to do. Location: ${invFileName}"
       $r.Code = 0
       $this.audit.LogI($r.Description)
       return $r

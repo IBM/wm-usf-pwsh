@@ -7,10 +7,10 @@ Using module "../../01.code/wm-usf-setup-template.psm1"
 $audit = [WMUSF_Audit]::GetInstance()
 
 # Use env vars to iterate faster eventually
-$template = ${env:WMUSF_CURRENT_TEMPLATE_ID} ?? (Read-Host "Input a template ID, e.g. DBC\1011\full")
-$audit.LogI("Considering templateId $template")
+${templateId} = ${env:WMUSF_CURRENT_TEMPLATE_ID} ?? (Read-Host "Input a template ID, e.g. DBC\1011\full")
+$audit.LogI("Considering templateId ${templateId}")
 
-$template = [WMUSF_SetupTemplate]::new($template)
+$template = [WMUSF_SetupTemplate]::new(${templateId}, 'true')
 
 $r1 = $template.AssureProductsZipFile()
 if ($r1.Code -ne 0) {
