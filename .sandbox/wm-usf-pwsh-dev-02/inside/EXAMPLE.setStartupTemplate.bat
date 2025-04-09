@@ -1,6 +1,7 @@
 @echo off
 
 SET WMUSF_SBX_STARTUP_TEMPLATE=DBC\1011\full
+SET WMUSF_SBX_STARTUP_INSTALL_DIR=c:\x\webMethods\DBC
 
 REM Optional, eventually set this to avoid user interaction
 REM If not set, the sandbox will ask for user input
