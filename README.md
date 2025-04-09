@@ -24,31 +24,46 @@ The sandbox will take some time for its first run. After the startup finishes, y
 
 ### Default values
 
-Name|Default Posix Value|Default Windows Value|Notes
--|-|-|-
-WMUSF_ARTIFACTS_CACHE_HOME| `/opt/WMUSF/Artifacts` | `C:\WMUSF\Artifacts` |Artifacts cache directory for the framework
-WMUSF_AUDIT_DIR| `/tmp/WMUSF_Audit` | `c:\y\sandbox\WMUSF_Audit` |Audit base directory for the framework
-WMUSF_BOOTSTRAP_UPD_MGR_BIN| `${WMUSF_ARTIFACTS_CACHE_HOME}/${defaultWmumBootstrapFileName}` |Same as left|Binary file for Update Manager bootstrap
-WMUSF_DEBUG_ON|0|0|Put on 1 to have more debugging information in the audit
-WMUSF_LOG_SESSION_DIR| `${WMUSF_AUDIT_DIR}/logs` | `${WMUSF_AUDIT_DIR}\logs` |Log directory for the current session
-WMUSF_TEMP_DIR| `/tmp` | `${env:TEMP}` |Temporary directory for the framework
-WMUSF_UPD_MGR_HOME| `/opt/wmUpdMgr11` | `c:\webMethodsUpdateManager` |Home installation Folder for Update Manager
+For the sake of conciseness, the path separator in the constants is backslash, but the framework adapts in case of POSIX environments.
+Some variables have pseudo names, e.g. `${SYSTEM_TEMP}` in reality is `[System.IO.Path]::GetTempPath()` , reduced in the presentation below for readability purposes:
 
-### Test scenarios for this project values
+Pseudo Variable Name|Value or Formula
+-|-
+SYSTEM_TEMP|[System. IO. Path]:: GetTempPath()
+CRT_DAY| ( `Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%d` )
+CRT_TIMESTAMP| ( `Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S` )
 
-Name|Default Value in Sandbox|Default Value in devcontainer|Default Framework Value|Notes
--|-|-|-|-
-WMUSF_AUDIT_DIR| `c:\y\sandbox\WMUSF_Audit` | `${project_home}$/local/devcontainer/audit` |
-WMUSF_ARTIFACTS_CACHE_HOME| `K:` | `${project_home}$/09.artifacts`
+Name|Default Value|Notes
+-|-|-
+WMUSF_AUDIT_DEBUG_ON| `'0'` | put on `'1'` for more verbose logging and tracing
+WMUSF_AUDIT_DIR| `"${SYSTEM_TEMP}\WMUSF_AUDIT"` |Base directory for Audit, i.e. logs and traces
+WMUSF_AUDIT_LOG_SESSION_DIR| `"${WMUSF_AUDIT_DIR}\${CRT_TIMESTAMP}"` |Base directory for this session logs and traces
+WMUSF_DOWNLOADER_CACHE_DIR| `"${SYSTEM_TEMP}\WMUSF_CACHE"` | Base directory for locally cached artifacts
+WMUSF_DOWNLOADER_ONLINE_MODE | `'true'` | Tells the framework's downloader if an internet link for downloading is available. If not, only cached objects are usable. User may copy over the cached contents for air-gapped installations
+WMUSF_INSTALLER_BINARY | `"N/A"` | When using an already existing installer binary, the user may declare it here. If not declared, the framework's downloader object will automatically download and cache the latest tested version from source
+WMUSF_UPD_MGR_BOOTSTRAP_BINARY | `"N/A"` | Same regimen as `${WMUSF_INSTALLER_BINARY}` .
+WMUSF_CCE_BOOTSTRAP_BINARY| `"N/A"` | Same regimen as `${WMUSF_INSTALLER_BINARY}` .
+WMUSF_UPD_MGR_HOME| `\webMethods\UpdateManager` | Home of update manager installation
+WMUSF_DOWNLOAD_USER| | Download user for webMethods
+WMUSF_DOWNLOAD_PASSWORD| | Download password for webMethods
 
-## Script Scoped Variables
+### Sandbox Variable Values
 
-The variables below are resolved in the provided order
+_This section is "work in Progress"_
 
-(To Review)
+The sandbox variable values are set in the files `.sandbox/wm-usf-pwsh-dev-02/inside/setEnv.bat` , for startup, and in `.sandbox/wm-usf-pwsh-dev-02/inside/02.b.prepareMachine.ps1` at sandbox level for subsequent shells.
 
-Variable Name|Description|Derived from env Var|Default Value
--|-|-|-
-TempSessionDir|Temporary directory for the session| `${env:WMUSF_TEMP_DIR}` | `(${env: TEMP} ?? '/tmp) + [IO.Path]::DirectorySeparatorChar + "WMUSF` "
-AuditBaseDir|Audit base directory for the framework| `${env:WMUSF_AUDIT_DIR}` | `${tempSessionDir}/WMUSF_AUDIT` |
-LogSessionDir|Log directory for the current session| `${env:WMUSF_LOG_SESSION_DIR}` | `"${auditBaseDir}/$(Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S')")`
+Besides the framework environment variables, the sandbox also uses the following specific environment variables. They are defined in the file .sandbox/wm-usf-pwsh-dev-02/startupSandbox.bat.
+
+Name|Default Value|Notes
+-|-|-
+WMUSF_ARTIFACTS_CACHE_HOME| `K:` | Internal older mapped to the project's `09.Artifacts` folder
+WMUSF_AUDIT_DIR| `c:\y\sandbox\WMUSF_Audit` | Internal older mapped to the project's `"10.local-files\sbx\Runs\r-${CRT_TIMESTAMP}"` folder
+WMUSF_SBX_STARTUP_TEMPLATE| `'DBC\1011\full'` | Template to install directly at startup of the Sandbox
+
+### Devcontainer Variable Values
+
+Name|Default Value|Notes
+-|-|-
+WMUSF_AUDIT_DIR| `"${project_home}$/local/devcontainer/audit"` | Local audit folder for devcontainer, where unit tests may be run
+WMUSF_ARTIFACTS_CACHE_HOME| `"${project_home}$/09.artifacts"` | Local artifacts cache for devcontainer

@@ -13,7 +13,7 @@ class WMUSF_UpdMgr {
   [Guid] $WMUSF_UpdMgrTarget = [Guid]::NewGuid()
 
   hidden WMUSF_UpdMgr() { 
-    $this.init("c:\x\UpdateManager") 
+    $this.init( (${env:WMUSF_UPD_MGR_HOME} ?? "\webMethods\UpdateManager"))
   }
 
   hidden WMUSF_UpdMgr([string] ${GivenUpdMgrHome}) {

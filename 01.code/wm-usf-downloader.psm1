@@ -9,7 +9,6 @@ class WMUSF_Downloader {
   hidden [string] $cacheDir
   [string] $onlineMode
   # These, by convention, are always full paths
-  [string] $updateManagerHome
   [string] $currentInstallerBinary
   [string] $currentUpdateManagerBootstrapBinary
   [string] $currentCceBootstrapBinary
@@ -38,14 +37,12 @@ class WMUSF_Downloader {
   hidden init() {
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.cacheDir = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
-    $this.updateManagerHome = ${env:WMUSF_UPD_MGR_HOME} ?? [System.IO.Path]::GetTempPath() + 'WmUpdateMgr'
     $this.currentInstallerBinary = ${env:WMUSF_INSTALLER_BINARY} ?? "N/A"
     $this.currentUpdateManagerBootstrapBinary = ${env:WMUSF_UPD_MGR_BOOTSTRAP_BINARY} ?? "N/A"
     $this.currentCceBootstrapBinary = ${env:WMUSF_CCE_BOOTSTRAP_BINARY} ?? "N/A"
     $this.onlineMode = ${env:WMUSF_DOWNLOADER_ONLINE_MODE} ?? 'true'
     $this.audit.LogI("WMUSF_Downloader initialized")
     $this.audit.LogI("WMUSF_Downloader CacheDir: " + $this.cacheDir)
-    $this.audit.LogI("WMUSF_Downloader Update Manager Home: " + $this.updateManagerHome)
     $this.audit.LogI("WMUSF_Downloader Installer Binary: " + $this.currentInstallerBinary)
     $this.audit.LogI("WMUSF_Downloader Update Manager Bootstrap Binary: " + $this.currentUpdateManagerBootstrapBinary)
     $this.audit.LogI("WMUSF_Downloader Online Mode: " + $this.onlineMode)
@@ -97,7 +94,7 @@ class WMUSF_Downloader {
       $r.Code = 2
       $r.Description = "Checksum verification failed"
     }
-    $this.audit.LogD("wmUifwCommon|Get-WebFileWithChecksumVerification returns " + $r.Code)
+    $this.audit.LogD("Get-WebFileWithChecksumVerification returns " + $r.Code)
     return ${r}
   }
 
@@ -228,7 +225,7 @@ class WMUSF_Downloader {
   }
 
   [WMUSF_Result] AssureDefaultCceBootstrap() {
-    $this.audit.LogD("Assuring default boostrap for CCE, no parameters received")
+    $this.audit.LogD("Assuring default bootstrap for CCE, no parameters received")
     return $this.AssureDefaultCceBootstrap($this.cacheDir, [WMUSF_Downloader]::defaultCceBootstrapFileName)
   }
 
@@ -236,7 +233,7 @@ class WMUSF_Downloader {
     [string]${fullOutputDirectoryPath},
     [string]${fileName}
   ) {
-    $this.audit.LogI("Assuring default boostrap for CCE, parameters received: 1: ${fullOutputDirectoryPath} 2: ${fileName}")
+    $this.audit.LogI("Assuring default bootstrap for CCE, parameters received: 1: ${fullOutputDirectoryPath} 2: ${fileName}")
     $r = $this.AssureWebFileWithChecksumVerification(
       [WMUSF_Downloader]::defaultCceBootstrapDownloadURL,
       ${fullOutputDirectoryPath},

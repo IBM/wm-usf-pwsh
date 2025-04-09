@@ -78,6 +78,7 @@ class WMUSF_SetupTemplate {
         $this.installerScriptFullPathExists = 'false'
       }
     }
+    #TODO: harmonize with Downloader class
     $this.imagesFolderFullPath = ${env:WMUSF_DOWNLOADER_CACHE_DIR} ?? ([System.IO.Path]::GetTempPath() + "WMUSF_CACHE")
     $this.imagesFolderFullPath = $this.imagesFolderFullPath + [IO.Path]::DirectorySeparatorChar + "images"
     $this.audit.LogD("Images folder for framework: " + $this.imagesFolderFullPath)
@@ -413,6 +414,7 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
+    # TODO: enforce eventual pure unattended mode where the credentials are not provided upfront in the environment
     $user = $env:WMUSF_DOWNLOAD_USER ?? ( Read-Host -Prompt "Enter your webMethods download center user name" )
     $pass = $env:WMUSF_DOWNLOAD_PASSWORD ?? ( Read-Host -MaskInput "Enter your webMethods download center user password" )
 

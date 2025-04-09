@@ -13,4 +13,14 @@ $audit.LogI("Considering templateId $template")
 $template = [WMUSF_SetupTemplate]::new($template)
 
 $r1 = $template.AssureProductsZipFile()
-$r1
+if (r1.Code -ne 0) {
+  $audit.LogE("AssureProductsZipFile failed")
+  $r1
+}
+
+
+$r2 = $template.AssureFixesZipFile()
+if ($r2.Code -ne 0) {
+  $audit.LogE("AssureFixesZipFile failed")
+  $r2
+}
