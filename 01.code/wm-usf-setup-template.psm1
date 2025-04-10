@@ -598,6 +598,14 @@ class WMUSF_SetupTemplate {
 
     $props = ConvertFrom-StringData $content
 
+    # first merge the two hashes keys
+    foreach ($key in [WMUSF_SetupTemplate]::defaultGlobalProperties.Keys) {
+      if ($null -eq $props[$key] -or "" -eq $props[$key]) {
+        $this.audit.LogD("Global key " + $key + " not present in the properties...")
+        $props[$key] = ""
+      }
+    }
+
     # First pass - assure values per key
     $newProps = @{}
     foreach ($key in $props.Keys) {
@@ -631,6 +639,7 @@ class WMUSF_SetupTemplate {
         $newProps[$key] = $vEnv
       }
     }
+
     if ($r.Errors.Count -gt 0) {
       $r.Description = "Setup properties not assured, cannot continue with the template setup!"
       $r.Code = 1

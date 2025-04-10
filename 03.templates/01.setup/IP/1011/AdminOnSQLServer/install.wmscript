@@ -1,0 +1,38 @@
+# Authored
+## Fixed part
+changeAdminPasswordAtFirstLogin=false
+IntegrationServer.RDBMS.Type=__VERSION1__,6,0,1_,2,3,4,5,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+IntegrationServerInstanceName=__VERSION1__,default
+IntegrationServerNetworkInterface=__VERSION1__,
+IntegrationServerPool.Name=__VERSION1__,IS_Internal
+ISAppOrService=__VERSION1__,1,0,Register+Windows+service%2FUNIX+daemon+for+automatic+startup
+ISCreateInstanceCheckbox=__VERSION1__,1,0_,Install+packages+on+this+instance+now
+ISExtOrInt=__VERSION1__,2,0_,1,External+RDBMS,Embedded+database
+mwsCreateInstanceCheckbox=__VERSION1__,1,0_,Create+Server+Instance
+mwsDatabaseDriverCombo=__VERSION1__,6,0,1_,2,3,4,5,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+NUM.Client.Profile.ID=__VERSION1__,1,0_,umserver,umserver
+NUM.Client.RNAME.ID=__VERSION1__,nsp%3A%2F%2Flocalhost%3A9000
+NUM.Purpose.ID=__VERSION1__,2,0_,1,New+installation,Side-by-side+installation+for+upgrade
+SPMAppOrService=__VERSION1__,1,0_,Register+Windows+service%2FUNIX+daemon+for+automatic+startup+of+Platform+Manager
+SPMUsingCC=__VERSION1__,1,0_,Plan+to+use+Command+Central
+mwsNameField=__VERSION1__,default
+mwsInstallServiceCheckbox=__VERSION1__,1,0,Register+Windows+service%2FUNIX+daemon+for+automatic+start+up
+mwsNewInstallCheckbox=__VERSION1__,2,0_,1,New+installation,Side-by-side+installation+for+upgrade
+## Parameters
+adminPassword=${WMSCRIPT_adminPassword}
+HostName=${WMSCRIPT_HostName}
+InstallDir=C\:\\ThisShouldBeOverwrittenByCommandLine
+integrationServer.LicenseFile.text=__VERSION1__,${WMSCRIPT_integrationServerLicenseFiletext}
+IntegrationServerDBPass.Name=__VERSION1__,${WMSCRIPT_IntegrationServerDBPass}
+IntegrationServerDBURL.Name=__VERSION1__,${WMSCRIPT_IntegrationServerDBURL}
+IntegrationServerDBUser.Name=__VERSION1__,${WMSCRIPT_IntegrationServerDBUser}
+IntegrationServerdiagnosticPort=__VERSION1__,${WMSCRIPT_IntegrationServerdiagnosticPort}
+IntegrationServerPort=__VERSION1__,${WMSCRIPT_IntegrationServerPort}
+IntegrationServersecurePort=__VERSION1__,${WMSCRIPT_IntegrationServersecurePort}
+mwsDBPwdField=__VERSION1__,${WMSCRIPT_mwsDBPwdField}
+mwsDBURLField=__VERSION1__,${WMSCRIPT_mwsDBURLField}
+mwsDBUserField=__VERSION1__,${WMSCRIPT_mwsDBUserField}
+mwsPortField=__VERSION1__,${WMSCRIPT_mwsPortField}
+SPMHttpPort=__VERSION1__,${WMSCRIPT_SPMHttpPort}
+SPMHttpsPort=__VERSION1__,${WMSCRIPT_SPMHttpsPort}
+StartMenuFolder=${WMSCRIPT_StartMenuFolder}
