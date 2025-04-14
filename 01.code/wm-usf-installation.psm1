@@ -8,6 +8,10 @@ Using module "./wm-usf-audit.psm1"
 using module "./wm-usf-update-manager.psm1"
 #       $audit.LogD("Read product list is: " + $pl.PayloadString)
 
+# TODO / Option
+# Skip fixes scenarios not fully implemented. Not needed now, they might be needed in the future.
+# For now, always ensure that fixes are computed upfront, as it should be, not contextual to installation
+
 class WMUSF_Installation {
   # Where to install? Accept over-installs
   [string] $InstallDir
@@ -179,6 +183,13 @@ class WMUSF_Installation {
       $this.template.ResolveFixesFoldersNames()
       $this.audit.LogD("Taking the resolved fixes zip file: " + $this.template.currentFixesZipFullPath)
       $this.CurrentFixesZipFullPath = $this.template.currentFixesZipFullPath
+    }
+    if ($this.CurrentFixesZipFullPath -eq "N/A") {
+      $r = [WMUSF_Result]::new()
+      $r.Description = "No fixes available for this installation"
+      $this.audit.LogE($r.Description)
+      $r.Code = 1
+      return $r
     }
     return $this.updateManager.PatchInstallation($this.InstallDir, $this.CurrentFixesZipFullPath)
   }

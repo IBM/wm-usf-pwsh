@@ -23,6 +23,7 @@ else {
   }
   $audit.LogI("Sandbox test -------------------> Completed installation of products, Patching the installation...")
 
+  $installation.template.AssureFixesZipFile()
   $installation.Patch()
 
   $audit.LogI("Sandbox test -------------------> Completed patching of products too")
