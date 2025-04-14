@@ -7,6 +7,8 @@ class WMUSF_Result {
   [array]$Messages
   [array]$Errors
   [array]$NestedResults
+  $Object
+
   ResultObject() {
     $this.Code = 99
     $this.Description = "Initialized"
@@ -15,6 +17,7 @@ class WMUSF_Result {
     $this.Messages = @()
     $this.Errors = @()
     $this.NestedResults = @()
+    $this.Object = $null
   }
 
   static [WMUSF_Result] GetSuccessResult() {

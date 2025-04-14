@@ -22,17 +22,20 @@ class WMUSF_Installation {
   # which fixes zip image to use?
   [string] $CurrentFixesZipFullPath
 
+  # which fixes zip image to use?
+  [string] $CurrentPropertiesFile
+
   [WMUSF_UpdMgr] $UpdateManager
   [WMUSF_Audit] $audit
   hidden [WMUSF_SetupTemplate] $template
 
   # Full Defaults
   WMUSF_Installation([string] ${TemplateId}) {
-    $this.init(${TemplateId}, [IO.Path]::DirectorySeparatorChar + "webMethods", $null, $null, $null)
+    $this.init(${TemplateId}, [IO.Path]::DirectorySeparatorChar + "webMethods", $null, $null, $null, $null)
   }
 
   WMUSF_Installation([string] ${TemplateId}, [string] ${InstallPath}) {
-    $this.init(${TemplateId}, ${InstallPath}, $null, $null, $null)
+    $this.init(${TemplateId}, ${InstallPath}, $null, $null, $null, $null)
   }
 
   # Eventually install but don't try to patch. This may be the case when the products are new
@@ -40,9 +43,10 @@ class WMUSF_Installation {
     [string] ${TemplateId},
     [string] ${InstallPath},
     [string] ${GivenInstallerBinary},
-    [string] ${GivenInstallZip}
+    [string] ${GivenInstallZip},
+    [string] ${GivenPropertiesFile}
   ) {
-    $this.init(${TemplateId}, ${InstallPath}, ${GivenInstallerBinary}, ${GivenInstallZip}, $null)
+    $this.init(${TemplateId}, ${InstallPath}, ${GivenInstallerBinary}, ${GivenInstallZip}, ${GivenPropertiesFile}, $null)
   }
 
   WMUSF_Installation(
@@ -50,9 +54,12 @@ class WMUSF_Installation {
     [string] ${InstallPath},
     [string] ${GivenInstallerBinary},
     [string] ${GivenInstallZip},
+    [string] ${GivenPropertiesFile},
     [string] ${GivenFixesZip}
   ) {
-    $this.init(${TemplateId}, ${InstallPath}, ${GivenInstallerBinary}, ${GivenInstallZip}, ${GivenFixesZip})
+    $this.init(
+      ${TemplateId}, ${InstallPath}, ${GivenInstallerBinary}, 
+      ${GivenInstallZip}, ${GivenPropertiesFile}, ${GivenFixesZip})
   }
 
   hidden init(
@@ -60,11 +67,13 @@ class WMUSF_Installation {
     [string] ${InstallPath},
     [string] ${GivenInstallerBinary},
     [string] ${GivenInstallZip},
+    [string] ${GivenPropertiesFile},
     [string] ${GivenFixesZip}
   ) {
     $this.InstallDir = ${InstallPath}
     $this.CurrentInstallerBinaryFullPath = ${GivenInstallerBinary}
     $this.CurrentProductsZipFullPath = ${GivenInstallZip}
+    $this.CurrentPropertiesFile = ${GivenPropertiesFile}
     $this.skipFixes = 'false' # hardwired for now, will eventually consider when the case presents itself
     $this.audit = [WMUSF_Audit]::GetInstance()
     $this.audit.LogI("Initializing installation object with the following received values")
@@ -130,7 +139,9 @@ class WMUSF_Installation {
       $this.CurrentInstallerBinaryFullPath = $r2.PayloadString
     }
 
-    $r3 = $this.template.GenerateInstallScript($this.audit.LogSessionDir, "install.wmscript", ${GivenProductsZipFullPath})
+    $r3 = $this.template.GenerateInstallScript(
+      $this.audit.LogSessionDir, "install.wmscript",
+      ${GivenProductsZipFullPath}, $this.CurrentPropertiesFile)
     if ($r3.Code -ne 0) {
       $r.Code = 4
       $r.Description = "Error generating install script, code: " + $r.Code

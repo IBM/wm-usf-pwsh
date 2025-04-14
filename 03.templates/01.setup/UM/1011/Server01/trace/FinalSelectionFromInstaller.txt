@@ -1,0 +1,46 @@
+  Infrastructure
+      Common C/C++ Runtime
+      Java
+          Java Package Core 11.0
+      Libraries
+          Shared Libraries 10.11
+          Common Libraries for OpenSSL 10.11
+          Installer Libraries 10.11
+          Migration Framework Libraries 10.11
+          Third-Party Libraries
+              Base Security Libraries 10.11
+              Data Modeling Libraries 10.11
+              Logging Libraries for Java 10.11
+              Multi-Purpose Libraries 10.11 for Java
+              Tool for Java Service Wrapper 10.11
+              XML Binding Libraries 10.11 for JAXB
+      License
+          Agreement 10.11
+          Library for Java
+          Verifier
+      Platform Manager 10.11
+      Platform Manager Plug-ins
+          Universal Messaging Plug-in 10.11
+      Shared Platform
+          Platform 10.11
+          Bundles
+              Shared Bundles 10.11
+              Broker Bundles 10.5
+              Central Security Bundles (ZSL)
+                  ZSL esapi Bundle 10.11
+              Common Landscape Asset Registry 10.11
+              Common Monitoring Provider Bundle
+                  API 10.11
+                  Implementations 10.11
+              Deployer and Asset Build Environment Bundles 10.11
+              Installer Bundles 10.11
+              Integration Server Bundles 10.11
+              License Validator Bundles
+              Universal Messaging Bundles 10.11
+  Universal Messaging
+      Realm Server 10.11
+      Client Libraries 10.11
+      Instance Manager 10.11
+      Template Applications 10.11
+  webMethods Metering
+      Metering Agent 10.11

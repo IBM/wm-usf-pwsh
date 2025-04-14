@@ -315,7 +315,8 @@ class WMUSF_SetupTemplate {
   [WMUSF_Result] GenerateInstallScript(
     [string] ${EphemeralScriptFolder},
     [string] ${EphemeralScriptFileName},
-    [string] ${GivenProductsZipFullPath}
+    [string] ${GivenProductsZipFullPath},
+    [string] ${GivenPropertiesFile}
   ) {
     $this.audit.LogD("Generating install script file in folder ${EphemeralScriptFolder}")
     $this.audit.LogD("Using ephemeral script file name: " + ${EphemeralScriptFileName})
@@ -343,7 +344,7 @@ class WMUSF_SetupTemplate {
       return $r
     }
 
-    $r1 = $this.AssureSetupProperties()
+    $r1 = $this.AssureSetupProperties(${GivenPropertiesFile})
     if ($r1.Code -ne 0) {
       $r.Description = "Setup properties cannot be resolved, exiting with error"
       $r.Code = 6
@@ -378,6 +379,7 @@ class WMUSF_SetupTemplate {
 
     $r.Code = 0
     $r.PayloadString = $destFile
+    $this.CleanSetupProperties($r1.Object)
     return $r
   }
 
@@ -584,81 +586,95 @@ class WMUSF_SetupTemplate {
     return $r
   }
 
-  [WMUSF_Result] AssureSetupProperties() {
+  # Before generating a concrete install.wmscript file, we need to assure the template's variables
+  # Priority of resolution is:
+  # 1. Given file values (optional for templates defining all default values)
+  # 2. Template defaults
+  # 3. Global defaults
+  # 4. Environment variable value. Use this mode for secrets
+  # Default template file is mandatory, because it defines all the mandatory keys for an installation
+  hidden [WMUSF_Result] AssureSetupProperties([string] ${PropertiesFile}) {
+    $this.audit.LogD("Assuring setup properties using properties file ${PropertiesFile}")
     $r = [WMUSF_Result]::new()
-    $defaultPropsFile = $this.templateFolderFullPath + [IO.Path]::DirectorySeparatorChar + "default.properties"
-    if (-Not (Test-Path $defaultPropsFile -PathType Leaf)) {
+    ${defaultPropsFile} = $this.templateFolderFullPath + [IO.Path]::DirectorySeparatorChar + "default.properties"
+    if (-Not (Test-Path ${defaultPropsFile} -PathType Leaf)) {
       $r.Description = "Default properties file not found: " + $defaultPropsFile
       $r.Code = 1
       $this.audit.LogE($r.Description)
       return $r
     }
 
-    $content = Get-Content -Path $defaultPropsFile -Raw
+    ${allProps} = [WMUSF_SetupTemplate]::defaultGlobalProperties.Clone()
+    
+    # part 1 - add template defaults
+    ${props} = Get-Content -Path $defaultPropsFile -Raw | ConvertFrom-StringData 
+    foreach ($key in $props.Keys) {
+      ${allProps}[$key] = ${props}[$key]
+    }
 
-    $props = ConvertFrom-StringData $content
-
-    # first merge the two hashes keys
-    foreach ($key in [WMUSF_SetupTemplate]::defaultGlobalProperties.Keys) {
-      if ($null -eq $props[$key] -or "" -eq $props[$key]) {
-        $this.audit.LogD("Global key " + $key + " not present in the properties...")
-        $props[$key] = ""
+    # part 2 - add given values, if any
+    if ($null -ne ${PropertiesFile} -and ("" -ne ${PropertiesFile})) {
+      if (-Not (Test-Path ${PropertiesFile} -PathType Leaf)) {
+        $r.Description = "Given properties file not found: " + ${PropertiesFile}
+        $r.Code = 2
+        $this.audit.LogE($r.Description)
+        return $r
+      }
+  
+      ${props} = Get-Content -Path ${PropertiesFile} -Raw | ConvertFrom-StringData 
+      foreach ($key in $props.Keys) {
+        ${allProps}[$key] = ${props}[$key]
       }
     }
 
-    # First pass - assure values per key
-    $newProps = @{}
-    foreach ($key in $props.Keys) {
-      $this.audit.LogD("Key: " + $key)
-      $this.audit.LogD("Value: " + $props[$key])
-      ## Env Var is the first choice
-      $vEnv = (Get-ChildItem "Env:$key").Value
-      if ($null -eq $vEnv -or "" -eq $vEnv) {
-        $this.audit.LogD("No environment value for key: " + $key + ". Hunting for default values...")
-        ## Local Template is the second choice
-        if ($null -eq $props[$key] -or "" -eq $props[$key]) {
-          $this.audit.LogD("No local template value for key: " + $key + ". Hunting for global default values...")
-          ## Global Template is the third choice
-          $v = [WMUSF_SetupTemplate]::defaultGlobalProperties[$key]
-          if ($null -eq $v -or "" -eq $v) {
-            $this.audit.LogE("Cannot resolve any value for key: " + $key)
-            $r.Errors += "Cannot resolve any value for key: " + $key
-          }
-          else {
-            $this.audit.LogD("Considering global framework default value for key: " + $key + " to " + $v)
-            $newProps[$key] = $v
-          }
-        }
-        else {
-          $this.audit.LogD("Considering local template default value for key: " + $key + " = " + $props[$key])
-          $newProps[$key] = $props[$key]
-        }
+    # part 3 - check for empty values, symptom of wrong configuration
+    ${errNo} = 0
+    ${allProps2} = @{}
+    foreach ($key in ${allProps}.Keys) {
+      ${vEnv} = (Get-ChildItem "Env:${key}").Value
+      if (-Not ($null -eq ${vEnv} -or "" -eq ${vEnv})) {
+        $this.audit.logI("Template key ${key} resolved from environment variable")
+        ${allProps2}[$key] = ${vEnv}
       }
       else {
-        $this.audit.LogD("Considering environment value for key: " + $key + " with value: " + $vEnv)
-        $newProps[$key] = $vEnv
+        if ($null -eq ${allProps}[$key] -or ("" -eq ${allProps}[$key]) ) {
+          $this.audit.LogE("Mandatory key ${key} has not been resolved!")
+          ${errNo} += 1
+        }
+        else {
+          ${allProps2}[$key] = ${allProps}[$key]
+        }
       }
     }
-
-    if ($r.Errors.Count -gt 0) {
-      $r.Description = "Setup properties not assured, cannot continue with the template setup!"
+    if (${errNo} -eq 0) {
+      foreach (${key} in ${allProps2}.Keys) {
+        if (${key}.ToUpper() -match "PASS") {
+          $this.audit.LogI("Globalizing key: [${key}] with value: ***")
+        }
+        else {
+          $this.audit.LogI("Globalizing key: [${key}] with value: " + ${allProps2}[$key])
+        }
+        Set-Variable -Name "${key}" -Scope Global -Value ${allProps2}[$key]
+      }
+      $r.Code = 0
+      $r.Description = "Setup properties assured successfully"
+      $r.Object = ${allProps2}
+    }
+    else {
       $r.Code = 1
-      $msg = $r.Description + ":`n" #+ ( $r.Errors -join "`" )
-      foreach ($error in $r.Errors) {
-        $msg += $error + "`n"
-      }
-      $this.audit.LogE($msg)
-      return $r
+      $r.Description = "Errors while assuring setup properties"
+      $this.audit.LogD($r.Description)
     }
-
-    # Second pass - globalise the values for substitution in the wmscript
-    foreach ($key in $newProps.Keys) {
-      Set-Variable -Name "${key}" -Scope Global -Value $newProps[$key]
-      $this.audit.LogD("Globalizing key: " + $key + " with value: " + $newProps[$key])
-    }
-
-    $r.Code = 0
-    $r.Description = "Setup properties assured"
     return $r
+  }
+
+  hidden [WMUSF_Result] AssureSetupProperties() {
+    return $this.AssureSetupProperties($null)
+  }
+
+  hidden [void] CleanSetupProperties([hashtable] ${props}) {
+    foreach (${key} in ${props}.Keys) {
+      Remove-Variable -Name "${key}" -Scope Global
+    }
   }
 }

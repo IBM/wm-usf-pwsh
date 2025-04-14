@@ -64,22 +64,19 @@ Describe "Templates" {
       "AAA ${WMSCRIPT_HostName} XX" | Invoke-EnvironmentSubstitution | Should -Be 'AAA  XX'
     }
 
-    It 'Checks the template properties with explict env key' {
-      $env:WMSCRIPT_OtherProperty = 'YYY'
+    It 'Checks the template properties with explicit env key' {
+      ${ts} = Get-Date (Get-Date).ToUniversalTime() -UFormat '+%y%m%dT%H%M%S'
+      ${tmpFile} = [io.Path]::GetTempPath() + "test_${ts}.properties"
+      "WMSCRIPT_OtherProperty='YYY'" | Out-File ${tmpFile}
       $template = [WMUSF_SetupTemplate]::new("Example")
-      $r = $template.AssureSetupProperties()
+      $env:WMSCRIPT_Secret = "secret"
+      $r = $template.AssureSetupProperties(${tmpFile})
       $r.Code | Should -be 0
+      $r.Object | Should -Not -Be $null
+      $r.Object | Should -BeOfType [hashtable]
       "AAA ${WMSCRIPT_HostName} XX" | Invoke-EnvironmentSubstitution | Should -Be 'AAA localhost XX'
+      $template.CleanSetupProperties($r.Object)
+      Remove-Item -Path ${tmpFile}
     }
-
   }
-
-  # TODO: move
-  # Context 'Downloads' {
-  #   It 'Checks the server URL for product downloading' {
-  #     Get-DownloadServerUrlForTemplate "DBC\1011\full" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1011.cgi'
-  #     Get-DownloadServerUrlForTemplate "DBC\1015\full" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
-  #     Get-DownloadServerUrlForTemplate "anything" | Should -Be 'https\://sdc-hq.softwareag.com/cgi-bin/dataservewebM1015.cgi'
-  #   }
-  # }
 }

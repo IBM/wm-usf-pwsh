@@ -1,0 +1,21 @@
+# Authored
+changeAdminPasswordAtFirstLogin=false
+NUM.Instance.Create.ID=__VERSION1__,1,0,Create+Server+Instance
+NUM.Interface.Binding.ID=__VERSION1__,3,0_,1,2,ALL,127.0.0.1,172.26.167.149,ALL
+NUM.Profile.Custom.file=__VERSION1__,
+NUM.Profile.ID=__VERSION1__,3,0_,1,2,webMethods+suite+use+cases+%28large+messages%2C+transactions%2C+persistence%29,Standalone+use+cases+%28small+messages%2C+non-transactional%2C+transient+data%29,Custom
+NUM.Purpose.ID=__VERSION1__,2,0_,1,New+installation,Side-by-side+installation+for+upgrade
+NUMRegCheckbox=__VERSION1__,1,0,Register+Windows+service%2FUNIX+daemon+for+automatic+startup
+SPMAppOrService=__VERSION1__,1,0_,Register+Windows+service%2FUNIX+daemon+for+automatic+startup+of+Platform+Manager
+SPMUsingCC=__VERSION1__,1,0_,Plan+to+use+Command+Central
+## Parameters
+adminPassword=${WMSCRIPT_adminPassword}
+HostName=${WMSCRIPT_HostName}
+InstallDir=C\:\\ThisShouldBeOverwrittenByCommandLine
+NUM.Data.Dir.ID=__VERSION1__,${WMSCRIPT_NUM_Data_Dir_ID}
+NUM.Interface.Port.ID=__VERSION1__,${WMSCRIPT_NUM_Interface_Port_ID}
+NUM.Realm.Server.Name.ID=__VERSION1__,${WMSCRIPT_NUM_Realm_Server_Name_ID}
+NUMRealmServer.LicenseFile.text=__VERSION1__,${WMSCRIPT_NUMRealmServer_LicenseFile_text}
+SPMHttpPort=__VERSION1__,${WMSCRIPT_SPMHttpPort}
+SPMHttpsPort=__VERSION1__,${WMSCRIPT_SPMHttpsPort}
+StartMenuFolder=${WMSCRIPT_StartMenuFolder}
