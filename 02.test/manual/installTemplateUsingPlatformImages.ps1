@@ -14,7 +14,7 @@ if (${templateId} -eq "None") {
   $audit.LogI("Sandbox test -------------------> No template set, nothing to do at this point")
 }
 else {
-  $installation = [WMUSF_Installation]::new(${templateId}, ${installDir}, ${installerBinary}, ${productsZip}, ${fixesZip})
+  $installation = [WMUSF_Installation]::new(${templateId}, ${installDir}, ${installerBinary}, ${productsZip}, $null, ${fixesZip})
 
   $audit.LogI("Sandbox test -------------------> Starting installation of products")
 
@@ -26,7 +26,7 @@ else {
   }
   $audit.LogI("Sandbox test -------------------> Completed installation of products, Patching the installation...")
 
-  $installation.Patch()
+  $installation.Patch(${fixesZip})
 
   $audit.LogI("Sandbox test -------------------> Completed patching of products too")
 }

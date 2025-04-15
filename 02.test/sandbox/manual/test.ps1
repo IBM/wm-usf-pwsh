@@ -31,7 +31,6 @@ if ($r.Code -ne 0) {
 }
 $audit.LogI("Sandbox test -------------------> Completed installation of products, Patching the installation...")
 
-$installation.Patch()
+$installation.Patch(${fixesZip})
 
 $audit.LogI("Sandbox test -------------------> Completed patching of products too")
-
