@@ -28,6 +28,8 @@ SET SANDBOX_GATEWAY_IP=172.28.224.1
 
 ## Open Services
 
+Run these as Administrator from command line (not PowerShell)
+
 ```bat
 netsh interface portproxy add v4tov4 listenaddress=%SANDBOX_GATEWAY_IP% listenport=1433 connectaddress=host.docker.internal connectport=1433
 netsh interface portproxy add v4tov4 listenaddress=%SANDBOX_GATEWAY_IP% listenport=8080 connectaddress=host.docker.internal connectport=8080

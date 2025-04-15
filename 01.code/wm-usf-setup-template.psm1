@@ -648,7 +648,7 @@ class WMUSF_SetupTemplate {
     }
     if (${errNo} -eq 0) {
       foreach (${key} in ${allProps2}.Keys) {
-        if (${key}.ToUpper() -match "PASS") {
+        if ((${key}.ToUpper() -match "PASS") -or (${key}.ToUpper() -match "PWDFIELD")) {
           $this.audit.LogI("Globalizing key: [${key}] with value: ***")
         }
         else {
