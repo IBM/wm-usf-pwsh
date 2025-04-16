@@ -1,0 +1,32 @@
+# Authored
+## Fixed part
+changeAdminPasswordAtFirstLogin=false
+IntegrationServer.RDBMS.Type=__VERSION1__,6,0_,1,2,3,4,5,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+IntegrationServerDBPass.Name=__VERSION1__,
+IntegrationServerDBURL.Name=__VERSION1__,
+IntegrationServerDBUser.Name=__VERSION1__,
+IntegrationServerInstanceName=__VERSION1__,default
+IntegrationServerNetworkInterface=__VERSION1__,
+IntegrationServerPool.Name=__VERSION1__,
+ISAppOrService=__VERSION1__,1,0,Register+Windows+service%2FUNIX+daemon+for+automatic+startup
+ISCreateInstanceCheckbox=__VERSION1__,1,0_,Install+packages+on+this+instance+now
+ISExtOrInt=__VERSION1__,2,0,1_,External+RDBMS,Embedded+database
+SPMAppOrService=__VERSION1__,1,0_,Register+Windows+service%2FUNIX+daemon+for+automatic+startup+of+Platform+Manager
+SPMUsingCC=__VERSION1__,1,0_,Plan+to+use+Command+Central
+TaskEngineRuntimeConnectionName=__VERSION1__,CDSConn
+TaskEngineRuntimeDriverName=__VERSION1__,6,0,1_,2,3,4,5,Oracle,SQL+Server,DB2+for+Linux%2C+UNIX%2C+Windows,MySQL+Community+Edition,MySQL+Enterprise+Edition,PostgreSQL
+## Variables
+adminPassword=${WMSCRIPT_adminPassword}
+HostName=${WMSCRIPT_HostName}
+InstallDir=C\:\\ThisShouldBeOverwrittenByCommandLine
+integrationServer.LicenseFile.text=__VERSION1__,${WMSCRIPT_integrationServerLicenseFiletext}
+IntegrationServerdiagnosticPort=__VERSION1__,${WMSCRIPT_IntegrationServerdiagnosticPort}
+IntegrationServerPort=__VERSION1__,${WMSCRIPT_IntegrationServerPort}
+IntegrationServersecurePort=__VERSION1__,${WMSCRIPT_IntegrationServersecurePort}
+SPMHttpPort=__VERSION1__,${WMSCRIPT_SPMHttpPort}
+SPMHttpsPort=__VERSION1__,${WMSCRIPT_SPMHttpsPort}
+StartMenuFolder=${WMSCRIPT_StartMenuFolder}
+# This is declared as "task engine" in the properties name, but IRL is CDS
+TaskEngineRuntimePasswordName=__VERSION1__,${WMSCRIPT_TaskEngineRuntimePass}
+TaskEngineRuntimeUrlName=__VERSION1__,${WMSCRIPT_TaskEngineRuntimeUrlName}
+TaskEngineRuntimeUserName=__VERSION1__,${WMSCRIPT_TaskEngineRuntimeUserName}
