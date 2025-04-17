@@ -75,12 +75,17 @@ class WMUSF_Audit {
 
     # Protect logging of passwords
     # ATTN: framework convention -pass and -empowerPass to be passed as the last parameter
+    # Potential improvement point: generalize masking of passwords
     # installer
     ${cmdToLog} = ${Command} -replace "(.*)\-pass\ (.*)", "`${1}-pass ***"
     # update manager
     ${cmdToLog} = ${cmdToLog} -replace "(.*)\-empowerPass\ (.*)", "`${1}-empowerPass ***"
     # database configurator
     ${cmdToLog} = ${cmdToLog} -replace "(.*)\-password\ (.*)", "`${1}-password ***"
+    # instance manager IS
+    ${cmdToLog} = ${cmdToLog} -replace "(.*)\-Dadmin.password\ (.*)", "`${1}-Dadmin.password ***"
+    # instance manager IS
+    ${cmdToLog} = ${cmdToLog} -replace "(.*)\-Ddb.password\ (.*)", "`${1}-Ddb.password ***"
 
     ${fullCmd} = $Command + " >>""${baseOutputFileName}.out.txt"" 2>>""${baseOutputFileName}.err.txt"
     ${cmdToLog} += " >>""${baseOutputFileName}.out.txt"" 2>>""${baseOutputFileName}.err.txt"
